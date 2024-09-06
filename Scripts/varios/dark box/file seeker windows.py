@@ -3,7 +3,6 @@ from tkinter import Tk, filedialog
 from pathlib import Path
 # Initialize the Tkinter root
 
-
 # Perform any actions you need here
 cwd = Path.cwd()
 parent = cwd.parent.absolute()
