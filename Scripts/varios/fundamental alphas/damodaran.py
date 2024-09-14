@@ -36,9 +36,9 @@ def mainfucntions(ticker):
     return
 
 
+data=tickerdata('aapl')
 
-
-def tickerdata(ticker)
+def tickerdata(ticker):
     data_ticker = yf.Ticker(ticker)
     cf = data_ticker.cashflow.T.rename_axis('Date').reset_index()
     it = data_ticker.income_stmt.T.rename_axis('Date').reset_index()

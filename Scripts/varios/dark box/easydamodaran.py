@@ -1,26 +1,38 @@
+#LIBRERIAS
 import yfinance as yf
 import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-matplotlib.use('TkAgg')  # or 'Agg', 'Qt5Agg'
-import datetime
+from datetime import date, timedelta
+import plotly.io as pio
+import plotly.express as px
+pio.renderers.default='browser'
 
-def plot_price(ticker)
-    stock = yf.download(ticker, start=starttime, end=endtime)['Adj Close']
+# FUNCIONES
 
-    stock = pd.DataFrame(stock)
-    stock['Date'] = stock.index
-    stock['ticker'] = ticker
+def tickerdata(ticker):
+    data_ticker = yf.Ticker(ticker)
+    cf = data_ticker.cashflow.T.rename_axis('Date').reset_index()
+    it = data_ticker.income_stmt.T.rename_axis('Date').reset_index()
+    bs = data_ticker.balance_sheet.T.rename_axis('Date').reset_index()
+    it = it.drop(columns='Date')
+    bs = bs.drop(columns='Date')
+    data = pd.concat([cf, it, bs], axis=1)
+    return data
 
-    plt.figure(figsize=(10, 6))  # Set plot size
-    plt.plot(stock['Date'], stock['Adj Close'])
-    plt.xlabel('Fecha')
-    plt.ylabel('Valor')
-    plt.title(f"{ticker} - Valores Históricos")
-    plt.xticks(rotation=45)
-    plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=10))
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+def plot_price(ticker,starttime,endtime):
+    price = yf.download(ticker, start=starttime, end=endtime)['Adj Close']
+    price = pd.DataFrame(price)
+    price['Date'] = price.index
+    price['ticker'] = ticker
+    fig = px.line(price,x='Date', y='Adj Close', title=ticker)
+    return price,fig
 
+#
+if __name__ == "__main__":
+
+    start_date='2019-01-01'
+    end_date=date.today()
+    ticker='AAPL'
+
+    financial_statements=tickerdata(ticker)
+    price.fig=plot_price(ticker,start_date,end_date)[0],[1]
+    fig.show()
