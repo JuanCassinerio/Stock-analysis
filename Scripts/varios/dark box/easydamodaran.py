@@ -18,13 +18,13 @@ def tickerdata(ticker):
     data = pd.concat([cf, it, bs], axis=1)
     return data
 
-def plot_price(ticker,starttime,endtime):
-    price = yf.download(ticker, start=starttime, end=endtime)['Adj Close']
+def plot_price(ticker,start_date,end_date):
+    price = yf.download(ticker, start=start_date, end=end_date)['Adj Close']
     price = pd.DataFrame(price)
     price['Date'] = price.index
     price['ticker'] = ticker
-    fig = px.line(price,x='Date', y='Adj Close', title=ticker)
-    return price,fig
+
+    return price
 
 #
 if __name__ == "__main__":
@@ -34,5 +34,6 @@ if __name__ == "__main__":
     ticker='AAPL'
 
     financial_statements=tickerdata(ticker)
-    price.fig=plot_price(ticker,start_date,end_date)[0],[1]
+    price=plot_price(ticker,start_date,end_date)
+    fig = px.line(price,x='Date', y='Adj Close', title=ticker)
     fig.show()
