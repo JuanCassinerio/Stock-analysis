@@ -1,8 +1,7 @@
 import requests
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-matplotlib.use('TkAgg')  # or 'Agg', 'Qt5Agg'
+
+import datetime
 
 # https://www.bcra.gob.ar/BCRAyVos/catalogo-de-APIs-banco-central.asp
 url = 'https://api.bcra.gob.ar/estadisticas/v2.0/PrincipalesVariables'
@@ -22,6 +21,7 @@ print(df)
 7=badlar
 '''
 
+
 def data_plot (id_variable):
     startdate = "2024-01-01"
     enddate = datetime.datetime.today().strftime('%Y-%m-%d')
@@ -29,16 +29,37 @@ def data_plot (id_variable):
     data_json = requests.get(url, headers=headers, verify=False).json()
     datahistorica = pd.DataFrame(data_json['results'])
     description = df['descripcion'][df['idVariable'] == id_variable].iloc[0]
-    plt.figure(figsize=(10, 6))  # Set plot size
-    plt.plot(datahistorica['fecha'], datahistorica['valor'])
-    plt.xlabel('Fecha')
-    plt.ylabel('Valor')
-    plt.title(f"{description} - Valores Históricos")
-    plt.xticks(rotation=45)
-    plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=10))
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
+
+
+    import plotly.graph_objects as go
+    import plotly.express as px
+
+    # Create the figure
+    fig = go.Figure()
+
+    # Add the trace (line plot)
+    fig.add_trace(go.Scatter(x=datahistorica['fecha'],
+                             y=datahistorica['valor'],
+                             mode='lines',
+                             name=f'{description} - Valores Históricos'))
+
+    # Update layout settings
+    fig.update_layout(
+        title=f"{description} - Valores Históricos",
+        xaxis_title="Fecha",
+        xaxis=dict(
+            tickangle=0,
+            nticks=10
+        ),
+        autosize=False,
+        width=1000,
+        height=600,
+        template='plotly_white'
+    )
+
+    # Show the figure
+    fig.show()
+
     return datahistorica
 
 #PLOT and download

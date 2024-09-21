@@ -1,6 +1,4 @@
 import tkinter as tk
-import easydamodaran
-from easydamodaran import plot_price
 
 new_directory = 'C:/Users/Usuario/Desktop/repos/Scripts/varios/dark box'  # Replace with the path to your desired directory
 os.chdir(new_directory)
