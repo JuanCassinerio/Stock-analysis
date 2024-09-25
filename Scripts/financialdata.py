@@ -81,7 +81,6 @@ for ticker in tickers:
         result_df = result_df.dropna()
         result_df['ticker'] = ticker
         fin = pd.concat([fin, result_df], ignore_index=True)
-        i += 1         
-        print(i, ticker)
+        fin = fin.rename(columns={'fiscalDateEnding': 'Date'})
     
 fin.to_csv(file_path0, index=False)

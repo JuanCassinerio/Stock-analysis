@@ -1,9 +1,4 @@
-"""
-#BLS Bureau of Labor statistics / Inflation
-https://data.bls.gov/dataViewer/view/timeseries/CUUR0000SA0L1E
-https://www.bls.gov/developers/api_python.htm#python2
-https://www.bls.gov/bls/api_features.htm
-"""
+
 import requests
 import json
 import pandas as pd
@@ -71,25 +66,5 @@ df['annual_inflation'] = ((1 + df['cpi']).rolling(window=13).apply(lambda x: np.
 
 
 
-inflation_mean=df['annual_inflation'].mean()
-inflation_std=df['annual_inflation'].std()
 
-# Plot
-
-
-
-fig = px.line(df, x=df.index, y='annual_inflation', title='Dolar Inflation U.S. (12 months)')  # Existing line
-fig.add_trace(go.Scatter(x=df.index, y=[inflation_mean] * len(df.index),
-                         mode='lines',
-                         name='Average Inflation',
-                         line=dict(dash='dash')))  # Set line dash style to 'dash'
-fig.add_trace(go.Scatter(x=df.index, y=[inflation_mean-inflation_std] * len(df.index),
-                         mode='lines',
-                         name='Average Inflation',
-                         line=dict(dash='dash')))
-fig.add_trace(go.Scatter(x=df.index, y=[inflation_mean+inflation_std] * len(df.index),
-                         mode='lines',
-                         name='Average Inflation',
-                         line=dict(dash='dash')))
-fig.show()
 

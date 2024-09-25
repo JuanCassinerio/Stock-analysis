@@ -4,33 +4,80 @@ os.chdir(new_directory)
 '''
 
 #LIBRERIAS
-from datetime import date, timedelta
+from datetime import date
 import pandas as pd
 import plotly.io as pio
-import plotly.express as px
-import os
+from pathlib import Path
 
 pio.renderers.default='browser'
 
 #MODULES
-from modules import financialdata,price,companydescription,damodaran
-#from damodaran import damodaran
+from Scripts.varios.Database.ticker_scrape import price,companydescription,damodaran
+
 
 # FUNCIONES
 def tickerdata(ticker):
-    financial_statements = financialdata(ticker)
+    key = 'B6T9Z1KKTBKA2I1C'
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
+    #financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
+    path = Path.cwd().parent.absolute()/'Database'/'db'
+
+    financial_statements = pd.read_csv(path/'financials.csv', sep=';')
+    #fin = financialdata(ticker) #yahoo last 4 years
     start_date = financial_statements['Date'].iloc[-1]
     end_date = date.today()
     ticker_data={'description': companydescription(ticker), 'financial_statements': financial_statements, 'price': price(ticker, start_date, end_date)}
     return ticker_data
 
+def macrodata():
+    SPY
+    rates
+    inflation=inflation()['inflation'].mean
+    g=gdpworld()
+    macros = {'description': companydescription(ticker), 'financial_statements': financial_statements,
+                   'price': price(ticker, start_date, end_date)}
+
+    return macros
+
 #
 if __name__ == "__main__":
+
+
 
     ticker = 'AAPL'
     #for ticker in tickerlist
     ticker_data=tickerdata(ticker)
-    '''fig = px.line(price,x='Date', y='Adj Close', title=ticker)
-        fig.show()'''
 
-    price=damodaran(ticker_data)[0]
+
+    macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':5}
+
+
+    price=damodaran(ticker_data,macros)[0]
+
+
+
+
+    '''
+    
+    start_date = financial_statements['Date'].iloc[-1]
+    end_date = date.today()
+    SPY=price('SPY', start_date, end_date)
+    SPY.to_csv(
+ 
+    
+    
+    '''
+
+
+    '''
+    company interest rate is dependant on rf or rfund
+    
+    
+    
+    
+    
+    '''
+
+
+
+

@@ -15,17 +15,17 @@ current_working_directory = os.getcwd()
 
 print(current_working_directory)
 
-# Step 1: Connect to MySQL database
+# Step 1: Connect to MySQL db
 conn = mysql.connector.connect(
     host='localhost',      # Replace with your host
     user='your_username',  # Replace with your MySQL username
     password='your_password',  # Replace with your MySQL password
-    database='your_database'   # Replace with your database name
+    database='your_database'   # Replace with your db name
 )
 conn = sqlite3.connect('example.db')
 
 
-# Step 2: Create a cursor object to interact with the database
+# Step 2: Create a cursor object to interact with the db
 cursor = conn.cursor()
 
 # Step 3: Create a table

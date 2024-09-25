@@ -51,41 +51,11 @@ fin = fin[['Date','fcf','Shares','totalNonCurrentLiabilities','Cash', 'interestE
 fin = fin[['Date', 'fcf','Shares','totalNonCurrentLiabilities','Cash','kd','tax']]
 
 
-#
-# project 
 
-#def salesprojection(x,a1,b1,c1,g,b2,c2):
-#    return a1*(1+b1/100)**(x-c1)+g/(1+np.exp(b2*(x-c2)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#macro
 
 my=20 #years
 macrof= df[df['Year'] >= macro['Year'].max()-my]
 
-def curve(x,a,b):
-    return a*x+b
-
-def projection(x):
-    
-    popt, _ = curve_fit(curve, macrof['Year'], macrof[x], maxfev=100) 
-    
-    
-    return projection(macrof['Year'], *popt)
 
 y_RF = projection('RF')
 
@@ -141,38 +111,3 @@ for ticker in tickers:
 
     fin_s['tarjet price'] = damodaran( date, fcf/ {g} {wacc} {t} /commonStockSharesOutstanding totalNonCurrentLiabilities cashAndCashEquivalentsAtCarryingValue)
 
-    
-
-
-
-
-
-get years to statioanrity
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fin.to_csv(file_path0, index=False)
