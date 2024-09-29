@@ -9,17 +9,18 @@ from sklearn.preprocessing import MinMaxScaler
 
 ################## VALUATION
 
-def salesprojection_logex(x, a1, b1, c1, g, b2, c2):
-    b1 = 2.5
-    return a1 * (1 + b1 / 100) ** (x - c1) + g / (1 + np.exp(b2 * (x - c2)))
+def salesprojection_logex(t, g, rev_0, a, b, c):
+    return g + a / (1 + np.exp(-b * (t - c)))*(1-a / (1 + np.exp(-b * (t - c))))
 
 
-def salesprojection_lin(x, a, b):
-    return a * x + b
+def salesprojection_logex_fast_short(t, g, rev_0, a, b, c):
+    return g + a / (1 + np.exp(-b * (t - c)))*(1-a / (1 + np.exp(-b * (t - c))))
 
-def salesprojection_exfall(x, a, b):
-    c = 2.5
-    return c + np.exp(-a * (x - b))
+def salesprojection_logex_fast_long(t, g, rev_0, a, b, c):
+    return g + a / (1 + np.exp(-b * (t - c)))*(1-a / (1 + np.exp(-b * (t - c))))
+
+def salesprojection_exfall_rise(x,g, a, b):
+    return g + np.exp(-a * (t - b))
 
 
 def npv_function(cash_flows, wacc, g):
@@ -214,7 +215,19 @@ def damodaran_2(ticker_data):  # alphavantageinput
     scaler_y = MinMaxScaler()
     years_scaled = scaler_x.fit_transform(data['Year'].values.reshape(-1, 1)).flatten()
     revenue_scaled = scaler_y.fit_transform(data['Total Revenue'].values.reshape(-1, 1)).flatten()
-    popt, _ = curve_fit(salesprojection, years_scaled, revenue_scaled, maxfev=100)
+
+    fitting_functions={}
+
+    for fitting in fitting_functions:
+
+    def salesprojection_logex(t, g, rev_0, a, b, c):
+        return rev_0 * (1 + g / 100) ** (t - t_0) + a / (1 + np.exp(-b * (t - c)))
+
+    g=macro['g']
+    t_0=years_scaled[-1]
+    rev_0=revenue_scaled[-1]
+
+    popt, _ = curve_fit(salesprojection_logex, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
 
     data = data.sort_values(by='Date', ascending=True)
     data['generated'] = 0

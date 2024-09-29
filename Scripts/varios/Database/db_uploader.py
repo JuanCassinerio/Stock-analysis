@@ -1,21 +1,32 @@
 from pathlib import Path
-
 import pandas as pd
-
 from ticker_list import comafi
 
-if user=__main__
+if __name__ == '__main__':
+    '''
+    'openpyxl' for xlsx
+    xlrd for xls
+    
+    '''
 
 
     cwd = Path.cwd()
-    output_path = cwd /'db'
+    path = cwd.parent.parent /'Database'/'db'
 
-    price=pd.DataFrame(output_path/'price.csv')
-    financials_statements=pd.DataFrame(output_path/'financials_statements.csv')
-    companydescription=pd.DataFrame(output_path/'companydescription.csv')
-df = pd.read_excel(output_path/'histimpl.xls', engine='openpyxl')
-    ERP=pd.DataFrame(output_path/'histimpl.xls')
-    macro=pd.DataFrame(output_path/'macro.csv')
+    price=pd.read_csv(path/'price.csv')
+    financials_statements=pd.read_csv(path/'financials_statements.csv')
+    companydescription=pd.read_csv(path/'companydescription.csv')
+    #damodaran Implied ERP
+    ERP = pd.read_excel(path/'histimpl.xls', engine='xlrd')
+    ERP = ERP.dropna(thresh=ERP.shape[1] - 4)
+    ERP.columns = ERP.iloc[0]
+    ERP = ERP[1:]
+
+
+
+
+    ERP=pd.DataFrame(path/'histimpl.xls')
+    macro=pd.read_csv(path/'macro.csv')
 
     #execute all data scrapers
     cedear_tickerlist=comafi()

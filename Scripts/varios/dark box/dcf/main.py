@@ -34,6 +34,8 @@ def macrodata():
     rates
     inflation=inflation()['inflation'].mean
     g=gdpworld()
+
+
     macros = {'description': companydescription(ticker), 'financial_statements': financial_statements,
                    'price': price(ticker, start_date, end_date)}
 
@@ -49,7 +51,8 @@ if __name__ == "__main__":
     ticker_data=tickerdata(ticker)
 
 
-    macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':5}
+    macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':ERP['Implied ERP (FCFE)'].iloc[-1]*100}
+
 
 
     price=damodaran(ticker_data,macros)[0]

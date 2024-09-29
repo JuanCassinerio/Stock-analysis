@@ -1,13 +1,8 @@
 import yfinance as yf
 import pandas as pd
-
-from scipy.optimize import curve_fit
-from bs4 import BeautifulSoup
 import requests
-import re
-import numpy as np
-import sklearn
-from sklearn.preprocessing import MinMaxScaler
+
+
 ######################### COMPANY DATA SCRAPING
 ######################### DATA SCRAPING
 def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
@@ -34,6 +29,7 @@ SPY =price('SPY', start_date, end_date)
 SPY = SPY .reset_index(drop=True)
 
 def companydescription(ticker): # COMPANY DESCRIPTION
+
     company_info = yf.Ticker(ticker).info
     currency = company_info.get("currency", None)
     shortName = company_info.get("shortName", None)
@@ -41,6 +37,10 @@ def companydescription(ticker): # COMPANY DESCRIPTION
     sector = company_info.get("sector", None)
     country = company_info.get("country", None)
     longBusinessSummary = company_info.get("longBusinessSummary", None)
+    targetHighPrice = company_info.get('targetHighPrice', None)
+    targetLowPrice=company_info.get('targetLowPrice', None)
+    targetMeanPrice=company_info.get('targetMeanPrice', None)
+
     link_yf = f"https://finance.yahoo.com/quote/{ticker}?.tsrc=fin-srch"
     new_row = {
         "ticker": ticker,
@@ -51,6 +51,9 @@ def companydescription(ticker): # COMPANY DESCRIPTION
         "country": country,
         "Summary": longBusinessSummary,
         "link_yf": link_yf,
+        "targetHighPrice" : targetHighPrice,
+        "targetLowPrice" : targetLowPrice,
+        "targetMeanPrice" : targetMeanPrice,
     }
     return new_row
 
@@ -150,8 +153,14 @@ def av_financials(ticker,key,headers):
 
 
 
-
-
+def sec():
+    headers = {'User-Agent': "juancassinerio@gmail.com"}
+    companyTickers = requests.get("https://www.sec.gov/files/company_tickers.json",headers=headers)
+    companyData = pd.DataFrame.from_dict(companyTickers.json(),orient='index')
+    companyData['cik_str'] = companyData['cik_str'].astype(str).str.zfill(10) #tickers
+    n=50 #first 50 tickers by marketcap
+    tickers = companyData.iloc[:n]['ticker'].tolist() #ranked by marketap dsc
+    return tickers
 
 
 
