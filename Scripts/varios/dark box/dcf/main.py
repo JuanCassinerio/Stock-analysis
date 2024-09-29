@@ -12,7 +12,8 @@ from pathlib import Path
 pio.renderers.default='browser'
 
 #MODULES
-from Scripts.varios.Database.ticker_scrape import price,companydescription,damodaran
+from Scripts.varios.Database.ticker_scrape import price,companydescription,av_financials
+from valuation import damodaran_2
 
 
 # FUNCIONES
@@ -20,9 +21,9 @@ def tickerdata(ticker):
     key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
     #financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
-    path = Path.cwd().parent.absolute()/'Database'/'db'
+    path = Path.cwd().parent.parent.absolute()/'Database'/'db'
 
-    financial_statements = pd.read_csv(path/'financials.csv', sep=';')
+    financial_statements = pd.read_csv(path/'financials.csv')
     #fin = financialdata(ticker) #yahoo last 4 years
     start_date = financial_statements['Date'].iloc[-1]
     end_date = date.today()
@@ -61,13 +62,37 @@ if __name__ == "__main__":
 
 
     '''
+    path = Path.cwd().parent.parent.absolute()/'Database'/'db'
+
+    financial_statements = pd.read_csv(path/'financials.csv')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     start_date = financial_statements['Date'].iloc[-1]
     end_date = date.today()
     SPY=price('SPY', start_date, end_date)
-    SPY.to_csv(
+   
  
-    
+
     
     '''
 

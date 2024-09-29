@@ -63,21 +63,21 @@ def beta(stock,macros): #5 years monthly
 
 
 def damodaran_1(ticker_data):  # yahooinput
-    ticker = ticker_data['description']['ticker']
-    data = ticker_data['financial_statements']
+    ticker = 'APPL'
+    data = financial_statements
 
     for col in data.columns:
         if col != 'Date':
             data[col] = pd.to_numeric(data[col], errors='coerce')  # Convert to float, coerce invalid to NaN
 
     data['Year'] = data['Date'].dt.year
-    data = data.dropna(subset=['Total Revenue'])
+    data = data.dropna(subset=['Revenue'])
 
     # project revenues (scaled data)
     scaler_x = MinMaxScaler()
     scaler_y = MinMaxScaler()
     years_scaled = scaler_x.fit_transform(data['Year'].values.reshape(-1, 1)).flatten()
-    revenue_scaled = scaler_y.fit_transform(data['Total Revenue'].values.reshape(-1, 1)).flatten()
+    revenue_scaled = scaler_y.fit_transform(data['Revenue'].values.reshape(-1, 1)).flatten()
     popt, _ = curve_fit(salesprojection, years_scaled, revenue_scaled, maxfev=100)
 
     data = data.sort_values(by='Date', ascending=True)
@@ -115,11 +115,6 @@ def damodaran_1(ticker_data):  # yahooinput
     # fcf Projection
 
     Datelast_date = data['Date'].iloc[-1]
-
-    future_years = pd.date_range(start=Datelast_date + pd.DateOffset(years=1), periods=5, freq='YE')
-
-    revenues = salesprojection(scaler_x(future_years.year.values.reshape(-1, 1)).flatten(), *popt)
-    revenues = scaler_y.inverse_transform(revenues.reshape(-1, 1)).flatten()  # unScale
 
     future_years = pd.date_range(start=Datelast_date + pd.DateOffset(years=1), periods=5, freq='YE')
     future_years_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()

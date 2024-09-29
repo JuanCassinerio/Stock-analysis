@@ -25,8 +25,6 @@ def price(ticker,start_date,end_date): #STOCKS PRICES (DIVIDEND ACCOUNTED)
     price = price.reset_index(drop=True)
     return price
 
-SPY =price('SPY', start_date, end_date)
-SPY = SPY .reset_index(drop=True)
 
 def companydescription(ticker): # COMPANY DESCRIPTION
 
@@ -108,8 +106,7 @@ def av_financials(ticker,key,headers):
 
 
 
-        fin=ticker_data['financial_statements']
-
+        fin=financial_statements
 
 
         fin = fin.rename(columns={'fiscalDateEnding': 'Date',
@@ -117,8 +114,7 @@ def av_financials(ticker,key,headers):
                                   'commonStockSharesOutstanding': 'Shares',
                                   'totalAssets': 'Assets',
                                   'capitalExpenditures': 'PPE',
-                                  'totalAssets': 'Net Income',
-                                  'totalAssets': 'Revenue',
+                                  'totalCurrentAssets': 'CurrentAssetsRevenue',
                                   'totalAssets': 'Depreciation',
                                   'totalAssets': 'Assets Current',
                                   'totalAssets': 'Liabilities Current',
