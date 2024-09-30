@@ -113,19 +113,23 @@ def av_financials(ticker,key,headers):
                                   'cashAndCashEquivalentsAtCarryingValue': 'Cash',
                                   'commonStockSharesOutstanding': 'Shares',
                                   'totalAssets': 'Assets',
-                                  'capitalExpenditures': 'PPE',
+                                  'capitalExpenditures': 'PPEchange',  R
                                   'totalCurrentAssets': 'CurrentAssetsRevenue',
-                                  'totalAssets': 'Depreciation',
+                                  'totalAssets': 'Depreciation',depreciationDepletionAndAmortization/depreciationmAndAmortization R
                                   'totalAssets': 'Assets Current',
-                                  'totalAssets': 'Liabilities Current',
-                                  'totalAssets': 'Liabilities',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',
-                                  'totalAssets': 'Date',})
+                                  'totalAssets': 'Liabilities Current',totalCurrentLiabilities R
+                                  'totalAssets': 'Liabilities',totalLiabilities R
+
+                                  'totalAssets': 'Date',totalNonCurrentLiabilities
+                                  'totalAssets': 'Date',longTermDebt
+                                  'totalAssets': 'Date',longTermDebtNoncurrent
+                                  'totalAssets': 'Date',commonStockSharesOutstanding R
+                                  'totalAssets': 'Date',totalRevenue R
+                                  'totalAssets': 'Date',NetIncome_y/oder _x/netIncomeFromContinuingOperations R
+
+        https: // finance.yahoo.com / quote / AAPL / cash - flow /
+
+        })
         fin['Date'] = pd.to_datetime(fin['Date'])
         for col in ['Shares', 'totalNonCurrentLiabilities', 'Cash', 'operatingCashflow', 'PPE',
                     'incomeTaxExpense', 'incomeBeforeTax', 'interestExpense']:

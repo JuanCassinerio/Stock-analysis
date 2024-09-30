@@ -342,20 +342,6 @@ def damodaran_2(ticker_data):  # alphavantageinput
 
     return TarjetPrice_mean, wacc
 
-
-def damodaranfcf(data, ticker, g):
-    # FCF Projection
-    data['Year'] = data['Date'].dt.year
-    popt, _ = curve_fit(salesprojection, data['Year'], data['fcf'], maxfev=100000000)  # p0=[5E+09, - 1E+13]
-
-    Datelast_num = data['Date'].dt.year.iloc[-1]
-    Datelast_date = data['Date'].iloc[-1]
-    for i in range(1, 7):
-        Date = Datelast_date + pd.DateOffset(years=1) * i
-        FreeCashFlow = salesprojection(Datelast_num + i, *popt)
-        new_year_data = {'Date': Date, 'fcf': FreeCashFlow}
-        data = data.append(new_year_data, ignore_index=True)
-
     # Today valuation
     fcfnext0 = data['fcf'].iloc[-2] * (1 + g / 100)
     terminalvalue0 = fcfnext0 / ((wacc / 100) - (g / 100))
@@ -378,3 +364,7 @@ def damodaranfcf(data, ticker, g):
     TarjetPrice_1yplus = VA_Equity / shares
 
     return TarjetPrice_0today, TarjetPrice_1yplus, plt
+
+
+
+
