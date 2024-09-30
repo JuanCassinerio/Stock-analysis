@@ -299,9 +299,11 @@ y_pred = best_function(years_scaled, *best_fit_params)
     logex_variables={equity_ratio,debt_ratio,kd,t,beta}
     for variable in logex_variables:
         #fit
-
+        best_fit_params, _ = curve_fit(salesprojection_logex, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
         #predict
+        y_pred = salesprojection_logex(years_scaled, *best_fit_params)
 
+        append
 
 
     wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
