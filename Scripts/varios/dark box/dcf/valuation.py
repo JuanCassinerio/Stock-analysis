@@ -36,26 +36,27 @@ def aprox(value, target, tolerance):
 def beta(stock,macros): #5 years monthly
 
     spy=macros['SPY']
+    spy=SPY
 
     stock['Month'] = stock['Date'].dt.month
     stock['Year'] = stock['Date'].dt.year
     df = pd.merge(spy, stock, on='Date')
-    df = df.rename(columns={'Adj Close_x': 'SPY', 'Adj Close_y': 'stock'})
+    df = df.rename(columns={'Adj Close_x': 'SPY', 'Adj Close_y': 'price'})
     df['Date'] = pd.to_datetime(df['Date'])
     df.set_index('Date', inplace=True)
     df = df.resample('ME').ffill()
     df['SPY'] = df['SPY'].pct_change()
-    df['stock'] = df['stock'].pct_change()
+    df['price_change'] = df['price'].pct_change()
     df = df.dropna()
     df.reset_index(inplace=True)
     df['Date'] = pd.to_datetime(df['Date'])
     df['Month'] = df['Date'].dt.month
     df['Year'] = df['Date'].dt.year
     window = 60  # 5 x 12
-    df['cov'] = df['SPY'].rolling(window=window).cov(df['stock'])
+    df['cov'] = df['SPY'].rolling(window=window).cov(df['price_change'])
     df['var'] = df['SPY'].rolling(window=window).var()
     df['beta'] = df['cov'] / df['var']
-
+    df=df[['Date','price','beta']]
     beta = df['beta'].iloc[-1]
     ke=macros['Rf']+beta*macros['Rp']
 
@@ -114,6 +115,8 @@ def damodaran_1(ticker_data):  # yahooinput
     shares = data['Ordinary Shares Number'].iloc[-1]
 
     # fcf Projection
+
+
 
     Datelast_date = data['Date'].iloc[-1]
 

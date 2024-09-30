@@ -16,14 +16,23 @@ def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
     return data
 
 def price(ticker,start_date,end_date): #STOCKS PRICES (DIVIDEND ACCOUNTED)
-    ticker='AAPL'
     price = yf.download(ticker, start=start_date, end=end_date)['Adj Close']
     price = pd.DataFrame(price)
+    price = price.sort_values(by='Date', ascending=False)
     price['Date'] = price.index
     price['ticker'] = ticker
-    price = price.sort_values(by='Date', ascending=False)
     price = price.reset_index(drop=True)
     return price
+
+
+'''
+start_date = financial_statements['Date'].iloc[-1]
+end_date = date.today()
+SPY=price('SPY', start_date, end_date)
+
+
+
+'''
 
 
 def companydescription(ticker): # COMPANY DESCRIPTION

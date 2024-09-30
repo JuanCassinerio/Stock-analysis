@@ -14,7 +14,7 @@ pio.renderers.default='browser'
 #MODULES
 from Scripts.varios.Database.ticker_scrape import price,companydescription,av_financials
 from valuation import damodaran_2
-
+from
 
 # FUNCIONES
 def tickerdata(ticker):
@@ -26,19 +26,21 @@ def tickerdata(ticker):
     financial_statements = pd.read_csv(path/'financials.csv')
     #fin = financialdata(ticker) #yahoo last 4 years
     start_date = financial_statements['Date'].iloc[-1]
-    end_date = date.today()
-    ticker_data={'description': companydescription(ticker), 'financial_statements': financial_statements, 'price': price(ticker, start_date, end_date)}
-    return ticker_data
 
-def macrodata():
-    SPY
-    rates
-    inflation=inflation()['inflation'].mean
+
+    end_date = date.today()
+    ticker_data={'description': companydescription(ticker), 'financial_statements': financial_statements, 'price': price(ticker, start_date - pd.DateOffset(years=6), end_date)}
+    return ticker_data,start_date
+
+def macrodata(start_date):
+    path = Path.cwd().parent.parent.absolute()/'Database'/'db'
+    SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
+
+    rates=fred()
+    ERP = MarketPremium()
     g=gdpworld()
 
-
-    macros = {'description': companydescription(ticker), 'financial_statements': financial_statements,
-                   'price': price(ticker, start_date, end_date)}
+    macros = {'SPY':SPY,'Rf':Rf,'ERP':ERP,'g':g}
 
     return macros
 
@@ -49,12 +51,12 @@ if __name__ == "__main__":
 
     ticker = 'AAPL'
     #for ticker in tickerlist(calculate return
-        ticker_data=tickerdata(ticker)
+        ticker_data,start_date=tickerdata(ticker)[0][1]
 
 
         macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':ERP['Implied ERP (FCFE)'].iloc[-1]*100}
 
-
+        macros=macrodata(start_date)
 
         price=damodaran(ticker_data,macros)[0]
 
@@ -76,30 +78,10 @@ if __name__ == "__main__":
 
 
     '''
-    path = Path.cwd().parent.parent.absolute()/'Database'/'db'
+    path = Path.cwd().absolute()/'Scripts'/'varios'/'Database'/'db'
 
     financial_statements = pd.read_csv(path/'financials.csv')
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    financial_statements['Date'] = pd.to_datetime(financial_statements['Date'])
     
     start_date = financial_statements['Date'].iloc[-1]
     end_date = date.today()
