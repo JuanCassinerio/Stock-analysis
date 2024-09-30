@@ -48,15 +48,29 @@ if __name__ == "__main__":
 
 
     ticker = 'AAPL'
-    #for ticker in tickerlist
-    ticker_data=tickerdata(ticker)
+    #for ticker in tickerlist(calculate return
+        ticker_data=tickerdata(ticker)
 
 
-    macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':ERP['Implied ERP (FCFE)'].iloc[-1]*100}
+        macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':ERP['Implied ERP (FCFE)'].iloc[-1]*100}
 
 
 
-    price=damodaran(ticker_data,macros)[0]
+        price=damodaran(ticker_data,macros)[0]
+
+        results = {'Date_t0': Datelast_date, 'TarjetPrice_t0': TarjetPrice_0today, 'TarjetPrice_t1': TarjetPrice_1yplus
+            , 'R2': max_r2, 'Fitting function': best_function, 'Fitting params': best_fit_params
+            , 'Projected Financial Statements': data}
+
+
+        plot grpah with price taarjet(x2) + yf reference, margin errors, r2and low plot with
+
+
+        if tp>p
+
+
+
+
 
 
 

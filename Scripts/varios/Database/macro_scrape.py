@@ -382,3 +382,10 @@ https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histimpl.html
         print(f"Download failed: {e}")
     return df
 
+20 years
+log_variables = {rf,rp}
+    for variable in log_variables:
+        best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+        y_pred = best_function(years_scaled, *best_fit_params)
+        salesprojection_exfall_rise(x, g, a, b)
+        append

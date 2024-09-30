@@ -1,10 +1,10 @@
 import pandas as pd
 from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
 from bs4 import BeautifulSoup
 import requests
 import re
 import numpy as np
-import sklearn
 from sklearn.preprocessing import MinMaxScaler
 
 ################## VALUATION
@@ -29,7 +29,8 @@ def npv_function(cash_flows, wacc, g):
         npv += cash_flow / (1 + (wacc/100)) ** t
     return npv
 
-
+def aprox(value, target, tolerance):
+    return (target - tolerance) <= value <= (target + tolerance)
 
 
 def beta(stock,macros): #5 years monthly
@@ -194,77 +195,116 @@ def damodaran_1(ticker_data):  # yahooinput
     return TarjetPrice_mean, wacc
 
 
-def damodaran_2(ticker_data):  # alphavantageinput
+def damodaran_2(ticker_data):
+    ############################## 1 - DATA PREPARATION ##############################
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
+
 
     for col in data.columns:
         if col != 'Date':
             data[col] = pd.to_numeric(data[col], errors='coerce')  # Convert to float, coerce invalid to NaN
 
     data['Year'] = data['Date'].dt.year
+    data = data.sort_values(by='Date', ascending=True)
     data = data.dropna(subset=['Revenue'])
+    data['Revenue Change'] = data['Total Revenue'].pct_change(periods=1)
+    data = data.dropna(subset=['Revenue Change'])
 
-    # project revenues (scaled data)
+    ############################## 2 - RETURN FITTING ##############################
     scaler_x = MinMaxScaler()
     scaler_y = MinMaxScaler()
     years_scaled = scaler_x.fit_transform(data['Year'].values.reshape(-1, 1)).flatten()
-    revenue_scaled = scaler_y.fit_transform(data['Total Revenue'].values.reshape(-1, 1)).flatten()
+    revenue_scaled = scaler_y.fit_transform(data['Revenue Change'].values.reshape(-1, 1)).flatten()
 
-    fitting_functions={}
 
-    for fitting in fitting_functions:
+    '''functions = [salesprojection_logex,salesprojection_exfall_rise]
+    max_r2 = -np.inf
+    best_fit_params = None
+    best_function = None
 
-    def salesprojection_logex(t, g, rev_0, a, b, c):
-        return rev_0 * (1 + g / 100) ** (t - t_0) + a / (1 + np.exp(-b * (t - c)))
+    for func in functions:
+        popt, _ = curve_fit(func, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+        y_pred = func(years_scaled, *popt)
+        r2 = r2_score(revenue_scaled, y_pred)
 
-    g=macro['g']
-    t_0=years_scaled[-1]
-    rev_0=revenue_scaled[-1]
+        if r2 > max_r2:
+            max_r2 = r2
+            best_fit_params = popt
+            best_function = func'''
+    best_function=salesprojection_exfall_rise
+    best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+    y_pred = best_function(years_scaled, *best_fit_params)
+    max_r2 = r2_score(revenue_scaled, y_pred)
 
-    popt, _ = curve_fit(salesprojection_logex, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
 
-    data = data.sort_values(by='Date', ascending=True)
-    data['generated'] = 0
-
-    data.drop('Year', axis=1)
-
-    # Vertical Analysis to Revenue
+    ############################## 3 - Vertical Analysis to Revenue ##############################
     variables = ['Net Income', 'Depreciation', 'PPE', 'Current Assets', 'Non Current Assets',
                  'Current Liabilities', 'Non Current Liabilities Net Minority Interest',
                  'Cash']
 
     verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Total Revenue'] for variable in variables})[variable].mean() for variable in variables}
 
+    ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
+    # wacc constant
+    ke = ke(ticker_data['price'], macros)[2]
+    Marketcap=ticker_data['price']['Adj Close'].iloc[0]*data['Shares']
+    wacc=ke*(Marketcap/data['Assets'])+data['Assets']*(1-data['tax'])*(data['Debt']/data['Assets'])
+
     # other variables
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    Net_Debt = (data['Current Liabilities'] + data['Total Non Current Liabilities Net Minority Interest'] - data['Cash']).iloc[-1]
+    Net_Debt = \
+    (data['Current Liabilities'] + data['Total Non Current Liabilities Net Minority Interest'] - data['Cash']).iloc[-1]
     shares = data['Shares'].iloc[-1]
 
+    ############################## 5 - CF AND WACC Projection ##############################
+    # CF Projection
 
-    # wacc constant
+    data = data.sort_values(by='Date', ascending=True)
+    data['generated'] = 0
 
-    ke = ke(ticker_data['price'], macros)[2]
+    data.drop('Year', axis=1)
 
-    Marketcap=ticker_data['price']['Adj Close'].iloc[0]*data['Shares']
-
-
-
-
-
-
-
-
-
-
-
-
-    # fcf Projection
     Datelast_date = data['Date'].iloc[-1]
-    future_years = pd.date_range(start=Datelast_date + pd.DateOffset(years=1), periods=5, freq='YE')
-    future_years_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
+    revenue = data['Revenue'].iloc[-1]
+    revenues=[]
+    future_years=[]
 
-    revenues = scaler_y.inverse_transform(salesprojection(future_years_scaled, *popt).reshape(-1, 1))  # unScale
+    def aprox(value, target, tolerance):
+        return (target - tolerance) <= value <= (target + tolerance)
+
+    i=0
+    for i in range(0,20)
+        if i==20:
+            error='max iters reached'
+            exit()
+        future_year = pd.date_range(start=Datelast_date + pd.DateOffset(years=1)
+        future_year_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
+        revenue_change = scaler_y.inverse_transform(best_function(future_year_scaled, *best_fit_params).reshape(-1, 1))  # unScale
+        revenue *= revenue_change
+        future_years.append(future_year)
+        revenues.append(revenue)
+        if aprox(revenue, g, g_desv) is True :
+            break
+        else
+            continue
+
+
+salesprojection_logex(t, g, rev_0, a, b, c)
+future_years
+best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+y_pred = best_function(years_scaled, *best_fit_params)
+
+
+    logex_variables={equity_ratio,debt_ratio,kd,t,beta}
+    for variable in logex_variables:
+        #fit
+
+        #predict
+
+
+
+    wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
 
     net_incomes = revenues * verticalratio['Net Income']
     current_assets = revenues * verticalratio['Current Assets']
@@ -310,16 +350,15 @@ def damodaran_2(ticker_data):  # alphavantageinput
             data['Current Assets'] - data['Current Liabilities'] - data['Cash And Cash Equivalents']).shift(1)
     data['Free Cash Flow'] = Operatingcashflow - Capex - NWCCh
 
-    g = 3
 
     fcfnext = data['Free Cash Flow'].iloc[-1] * (1 + g / 100)
-    terminalvalue = fcfnext / ((wacc / 100) - (g / 100))
+    terminalvalue = fcfnext / ((wacc.iloc[-1] / 100) - (g / 100))
     Subtotal = data['Free Cash Flow'].tolist()
     Subtotal[-1] += terminalvalue
 
     def npv(cash_flows, wacc, g):
         npv = 0
-        for t, cash_flow in enumerate(cash_flows):
+        for t, cash_flow,wacc in enumerate(cash_flows):
             npv += cash_flow / (1 + (wacc / 100)) ** t
         return npv
 
@@ -363,7 +402,12 @@ def damodaran_2(ticker_data):  # alphavantageinput
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_1yplus = VA_Equity / shares
 
-    return TarjetPrice_0today, TarjetPrice_1yplus, plt
+    results= {'Date_t0':Datelast_date,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus
+                ,'R2':max_r2,'Fitting function':best_function,'Fitting params':best_fit_params
+                ,'Projected Financial Statements':data}
+
+
+    return results
 
 
 
