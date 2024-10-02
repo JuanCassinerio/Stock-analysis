@@ -1,7 +1,5 @@
 '''
 - Cedear list ARG
-
-
 '''
 
 

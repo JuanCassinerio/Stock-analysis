@@ -14,7 +14,7 @@ pio.renderers.default='browser'
 #MODULES
 from Scripts.Financial.Database.ticker_scrape import price,companydescription,av_financials
 from valuation import damodaran_2
-from
+from Scripts.Financial.Database.macro_scrape import dmd,gdpworld,fred
 
 # FUNCIONES
 def tickerdata(ticker):
@@ -53,23 +53,20 @@ if __name__ == "__main__":
     ticker = 'AAPL'
     #for ticker in tickerlist(calculate return
         ticker_data,start_date=tickerdata(ticker)[0][1]
-
-
-        macros={'Rf':4,'SPY':SPY,'g':3,'inflation':2.5,'Rp':ERP['Implied ERP (FCFE)'].iloc[-1]*100}
-
         macros=macrodata(start_date)
 
-        price=damodaran(ticker_data,macros)[0]
 
+        price=damodaran(ticker_data,macros)[0]
         results = {'Date_t0': Datelast_date, 'TarjetPrice_t0': TarjetPrice_0today, 'TarjetPrice_t1': TarjetPrice_1yplus
             , 'R2': max_r2, 'Fitting function': best_function, 'Fitting params': best_fit_params
             , 'Projected Financial Statements': data}
 
 
+        #results
         plot grpah with price taarjet(x2) + yf reference, margin errors, r2and low plot with
 
 
-        if tp>p
+
 
 
 

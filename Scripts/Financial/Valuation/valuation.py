@@ -197,8 +197,11 @@ def damodaran_1(ticker_data):  # yahooinput
     return TarjetPrice_mean, wacc
 
 
-def damodaran_2(ticker_data):
+def damodaran_2(ticker_data,macros):
     ############################## 1 - DATA PREPARATION ##############################
+    '''data =result_df
+
+    '''
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
 
@@ -210,7 +213,7 @@ def damodaran_2(ticker_data):
     data['Year'] = data['Date'].dt.year
     data = data.sort_values(by='Date', ascending=True)
     data = data.dropna(subset=['Revenue'])
-    data['Revenue Change'] = data['Total Revenue'].pct_change(periods=1)
+    data['Revenue Change'] = data['Revenue'].pct_change(periods=1)
     data = data.dropna(subset=['Revenue Change'])
 
     ############################## 2 - RETURN FITTING ##############################
@@ -234,6 +237,8 @@ def damodaran_2(ticker_data):
             max_r2 = r2
             best_fit_params = popt
             best_function = func'''
+
+    g=
     best_function=salesprojection_exfall_rise
     best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
     y_pred = best_function(years_scaled, *best_fit_params)
@@ -241,22 +246,18 @@ def damodaran_2(ticker_data):
 
 
     ############################## 3 - Vertical Analysis to Revenue ##############################
-    variables = ['Net Income', 'Depreciation', 'PPE', 'Current Assets', 'Non Current Assets',
-                 'Current Liabilities', 'Non Current Liabilities Net Minority Interest',
-                 'Cash']
-
-    verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Total Revenue'] for variable in variables})[variable].mean() for variable in variables}
+    variables = ['Net Income', 'Depreciation', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash']
+    verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean() for variable in variables}
 
     ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
     # wacc constant
     ke = ke(ticker_data['price'], macros)[2]
     Marketcap=ticker_data['price']['Adj Close'].iloc[0]*data['Shares']
-    wacc=ke*(Marketcap/data['Assets'])+data['Assets']*(1-data['tax'])*(data['Debt']/data['Assets'])
+    wacc=ke*(Marketcap/data['Assets'])+data['Assets']*(1-data['tax'])*(data['Liabilities']/data['Assets'])
 
     # other variables
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    Net_Debt = \
-    (data['Current Liabilities'] + data['Total Non Current Liabilities Net Minority Interest'] - data['Cash']).iloc[-1]
+    Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
     shares = data['Shares'].iloc[-1]
 
     ############################## 5 - CF AND WACC Projection ##############################
@@ -272,15 +273,13 @@ def damodaran_2(ticker_data):
     revenues=[]
     future_years=[]
 
-    def aprox(value, target, tolerance):
-        return (target - tolerance) <= value <= (target + tolerance)
 
     i=0
     for i in range(0,20)
         if i==20:
             error='max iters reached'
             exit()
-        future_year = pd.date_range(start=Datelast_date + pd.DateOffset(years=1)
+        future_year = Datelast_date + pd.DateOffset(years=1)
         future_year_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
         revenue_change = scaler_y.inverse_transform(best_function(future_year_scaled, *best_fit_params).reshape(-1, 1))  # unScale
         revenue *= revenue_change
@@ -291,69 +290,42 @@ def damodaran_2(ticker_data):
         else
             continue
 
-
-salesprojection_logex(t, g, rev_0, a, b, c)
-future_years
-best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
-y_pred = best_function(years_scaled, *best_fit_params)
-
-
-    logex_variables={equity_ratio,debt_ratio,kd,t,beta}
-    for variable in logex_variables:
-        #fit
-        best_fit_params, _ = curve_fit(salesprojection_logex, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
-        #predict
-        y_pred = salesprojection_logex(years_scaled, *best_fit_params)
-
-        append
-
-
-    wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
-
-    net_incomes = revenues * verticalratio['Net Income']
-    current_assets = revenues * verticalratio['Current Assets']
-    current_liabilities = revenues * verticalratio['Current Liabilities']
-    cash = revenues * verticalratio['Cash And Cash Equivalents']
-    total_non_current_assets = revenues * verticalratio['Total Non Current Assets']
-    total_non_current_liabilities = revenues * verticalratio['Total Non Current Liabilities Net Minority Interest']
-    net_pp = revenues * verticalratio['Net PPE']
-    depreciation = net_pp / Years_Depreciation
-
-    revenues = revenues.flatten()
-    net_incomes = net_incomes.flatten()
-    current_assets = current_assets.flatten()
-    current_liabilities = current_liabilities.flatten()
-    cash = cash.flatten()
-    total_non_current_assets = total_non_current_assets.flatten()
-    total_non_current_liabilities = total_non_current_liabilities.flatten()
-    net_pp = net_pp.flatten()
-    depreciation = depreciation.flatten()
+    '''
+    salesprojection_logex(t, g, rev_0, a, b, c)
+    future_years
+    best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+    y_pred = best_function(years_scaled, *best_fit_params)
+    
+    
+        logex_variables={equity_ratio,debt_ratio,kd,t,beta}
+        for variable in logex_variables:
+            #fit
+            best_fit_params, _ = curve_fit(salesprojection_logex, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+            #predict
+            y_pred = salesprojection_logex(years_scaled, *best_fit_params)
+    
+            append
+    
+    
+        wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
+    '''
+    net_incomes = (revenues * verticalratio['Net Income']).flatten()
+    current_assets = (revenues * verticalratio['Assets Current']).flatten()
+    current_liabilities = (revenues * verticalratio['Liabilities Current']).flatten()
+    cash = (revenues * verticalratio['Cash']).flatten()
+    net_pp = (revenues * verticalratio['Net PPE']).flatten()
+    depreciation = (net_pp / Years_Depreciation).flatten()
 
     # Create a DataFrame for new data
-    new_year_data = {
-        'Date': future_years,
-        'Total Revenue': revenues,
-        'Net Income': net_incomes,
-        'Current Assets': current_assets,
-        'Current Liabilities': current_liabilities,
-        'Cash And Cash Equivalents': cash,
-        'Total Non Current Assets': total_non_current_assets,
-        'Total Non Current Liabilities Net Minority Interest': total_non_current_liabilities,
-        'Net PPE': net_pp,
-        'Reconciled Depreciation': depreciation,
-        'generated': 1
-    }
-
+    new_year_data = {'Date': future_years,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Depreciation': depreciation,'generated': 1}
     new_df = pd.DataFrame(new_year_data)
     data = pd.concat([data, new_df], ignore_index=True)
 
     # FCFF
-    Operatingcashflow = data['Net Income'] + data['Reconciled Depreciation']
-    Capex = data['Net PPE'] - data['Net PPE'].shift(1) + data['Reconciled Depreciation']
-    NWCCh = (data['Current Assets'] - data['Current Liabilities'] - data['Cash And Cash Equivalents']) - (
-            data['Current Assets'] - data['Current Liabilities'] - data['Cash And Cash Equivalents']).shift(1)
+    Operatingcashflow = data['Net Income'] + data['Depreciation']
+    Capex = data['Capex'] + data['Depreciation']
+    NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
     data['Free Cash Flow'] = Operatingcashflow - Capex - NWCCh
-
 
     fcfnext = data['Free Cash Flow'].iloc[-1] * (1 + g / 100)
     terminalvalue = fcfnext / ((wacc.iloc[-1] / 100) - (g / 100))
@@ -370,20 +342,6 @@ y_pred = best_function(years_scaled, *best_fit_params)
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_mean = VA_Equity / shares
 
-    # extra analysis
-    ''' return graprh
-
-    data['color'] = data['generated'].apply(lambda x: 'red' if x == 0 else 'blue')
-    fig = px.scatter(data,x='Date',y='Total Revenue', color='color')
-    fig.update_traces(mode='markers+lines', line=dict(color='black', dash='dash'),marker=dict(size=10))
-    fig.update_layout(title='Total Revenue')
-    fig.show()
-
-
-
-    '''
-
-    return TarjetPrice_mean, wacc
 
     # Today valuation
     fcfnext0 = data['fcf'].iloc[-2] * (1 + g / 100)
@@ -411,8 +369,19 @@ y_pred = best_function(years_scaled, *best_fit_params)
                 ,'Projected Financial Statements':data}
 
 
-    return results
+    ''' return graprh
+    
+    data['color'] = data['generated'].apply(lambda x: 'red' if x == 0 else 'blue')
+    fig = px.scatter(data,x='Date',y='Total Revenue', color='color')
+    fig.update_traces(mode='markers+lines', line=dict(color='black', dash='dash'),marker=dict(size=10))
+    fig.update_layout(title='Total Revenue')
+    fig.show()
+    
+    
+    
+    '''
 
+    return results
 
 
 

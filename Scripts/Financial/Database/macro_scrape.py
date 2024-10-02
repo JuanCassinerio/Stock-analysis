@@ -5,7 +5,6 @@ https://fred.stlouisfed.org/series/CORESTICKM159SFRBATL + personal account api k
 !pip install fredapi
 """
 #libraries
-
 import datetime
 from fredapi import Fred
 import yfinance as yf
@@ -15,8 +14,8 @@ from bs4 import BeautifulSoup
 
 import zipfile
 from scipy.optimize import curve_fit
-
-
+from sklearn.metrics import r2_score
+from sklearn.preprocessing import MinMaxScaler
 from io import BytesIO
 
 
@@ -29,10 +28,7 @@ import numpy as np
 import plotly.io as pio
 import plotly.express as px
 import plotly.graph_objects as go
-
 pio.renderers.default = 'browser'
-
-
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -40,6 +36,49 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 def salesprojection_exfall_rise(t,g, a, b):
     return g + np.exp(-a * (t - b))
 
+
+def data_fitting(function,parameters_0,x,y,maxiters):
+
+    #scaled data for big mangnitude difference between X and Y
+    scaler_x = MinMaxScaler()
+    scaler_y = MinMaxScaler()
+    x_scaled = scaler_x.fit_transform(x.values.reshape(-1, 1)).flatten()
+    y_scaled = scaler_y.fit_transform(y.values.reshape(-1, 1)).flatten()
+
+    parameters, _ = curve_fit(function, x_scaled, y_scaled, p0=parameters_0, maxfev=maxiters)
+    y_pred = function(x_scaled, *parameters)
+    r2 = r2_score(y_scaled, y_pred)
+
+    return paremeters,r2
+
+def data_projection(function,parameters,x,y,m_projected):
+
+
+
+
+    extrapolated_data = []
+    x1 = df['Year'].iloc[-1] + 1
+
+    for i in range(m + 1):
+        next_x = x1 + i
+        next_y = function(next_x, *parameters)
+        extrapolated_data.append([next_x, next_y])
+    ex = pd.DataFrame(extrapolated_data, columns=['x', 'y_RF'])
+
+
+    for i in range(0,20)
+        if i==20:
+            error='max iters reached'
+            exit()
+        future_year = Datelast_date + pd.DateOffset(years=1)
+        future_year_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
+        revenue_change = scaler_y.inverse_transform(best_function(future_year_scaled, *best_fit_params).reshape(-1, 1))  # unScale
+        revenue *= revenue_change
+        future_years.append(future_year)
+        revenues.append(revenue)
+
+
+    return ex
 
 def fred():
     #folder_path0 = 'C:/Users/Usuario/Desktop/Scripts/Base de datos/macro.csv'
@@ -65,7 +104,7 @@ def fred():
     df['rn.real'] = df['rn']-df['Inflation']
     df = df.dropna()
 
-
+'''
     ticker='^GSPC'
     stock_data = yf.download(ticker, start=start_date, end=end_date)
     stock_data['Marketreturn']=stock_data['Adj Close'].pct_change(252) * 100
@@ -76,26 +115,14 @@ def fred():
     df.dropna()
     df['Mean_SPY-rf'] = df['SPY-rf'].expanding().mean()
     df['Mean_SPY-rf'] =df['SPY-rf'].rolling(window=12*30).mean()
-    df['Year'] = df['Date'].dt.year
+    df['Year'] = df['Date'].dt.year'''
 
 
 
 
-    df['Year'] = df['Year'].astype(str)
-    df = pd.merge(df, dmd, on='Year', how='left')
-    df = df[['Date', 'rf', 'Marketreturn', 'Implied ERP (FCFE)']]
-    df['Date'] = df['Date'].to_period('ME')
+    dmd = dmd[['Year', 'Implied ERP (FCFE)']]
+df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].str.rstrip('%').astype(float)
 
-
-    start_date = df['Date'].min()
-    end_date = df['Date'].max()
-    date_range = pd.period_range(start=start_date, end=end_date, freq='ME')
-    date_df = pd.DataFrame({'Date': date_range})
-    df = pd.merge(date_df, df, on='Date', how='left')
-
-    df['rf'] = pd.to_numeric(df['rf'], errors='coerce')
-    df['Marketreturn'] = pd.to_numeric(df['Marketreturn'], errors='coerce')
-    df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].str.rstrip('%').astype(float)
 
     # Fill in missing values using the mean of the previous and next available values
     df['rf'] = df['rf'].interpolate(method='linear').round(2)
@@ -110,41 +137,14 @@ def fred():
 
     df['Year'] = df['Date'].dt.year
     dff = df[df['Year'] >= 2008]
+'''
+    # data fitting
+    
+    
+    print(r2)'''
 
+    #data projection
 
-
-
-
-
-    popt_RF, _ = curve_fit(projection, dff['Year'], dff['RF'], maxfev=100)
-    y_RF = projection(dff['Year'], *popt_RF)
-
-    popt_MP, _ = curve_fit(projection, dff['Year'], dff['MP'], maxfev=100)
-    y_MP = projection(dff['Year'], *popt_MP)
-
-    m=15
-    extrapolated_data = []
-    x1 = df['Year'].iloc[-1] +1
-    for i in range(m+1):
-        next_x = x1 + i
-        next_y = projection(next_x, *popt_RF)
-        extrapolated_data.append([next_x, next_y])
-    ex= pd.DataFrame(extrapolated_data, columns=['x', 'y_RF'])
-    ex_RF = ex.rename(columns={'x': 'Date'})
-
-    m=15
-    extrapolated_data = []
-    x1 = df['Year'].iloc[-1] +1
-    for i in range(m+1):
-        next_x = x1 + i
-        next_y = projection(next_x, *popt_MP)
-        extrapolated_data.append([next_x, next_y])
-    ex= pd.DataFrame(extrapolated_data, columns=['x', 'y_MP'])
-    ex_MP = ex.rename(columns={'x': 'Date'})
-
-
-    ex = pd.merge(ex_RF , ex_MP, on='Date')
-    ex = ex.rename(columns={'Date': 'Year','y_RF': 'RF','y_MP': 'MP'})
 
 
 
@@ -155,33 +155,12 @@ def fred():
     df.to_csv(folder_path0, index=False)
 
 
-    popt, _ = curve_fit(projection, df['Date'], df['gdp growth'], maxfev=100)  # p0=[5E+09, - 1E+13]
-    ym = projection(df['Date'], *popt)
-
-    x = df['Date']
-    y = df['gdp growth']
-
-    m = 20
-    extrapolated_data = []
-    x1 = df['Date'].iloc[-1] + 1
-    for i in range(m + 1):
-        next_x = x1 + i
-        next_y = projection(next_x, *popt)
-        extrapolated_data.append([next_x, next_y])
-    ex = pd.DataFrame(extrapolated_data, columns=['x', 'y'])
-    ex = ex.rename(columns={'x': 'Date', 'y': 'gdp growth'})
-
-    g = pd.concat([df, ex], axis=0)
-
 
 
     return fred
 
 
-    20 years
-    log_variables = {rf,rp}
-        for variable in log_variables:
-            bev
+
 
 
 
@@ -326,7 +305,7 @@ def dmd(path):
         data.append(row_data)
 
     columns = data[0]
-    dmd = pd.DataFrame(data[1:], columns=columns)
+    dmd = pd.DataFrame(data)
     dmd =dmd.dropna()['Implied ERP (FCFE)']
     '''ERP = pd.read_excel(path / 'histimpl.xls', engine='xlrd')
     first_non_nan_row = ERP.dropna().index[0]

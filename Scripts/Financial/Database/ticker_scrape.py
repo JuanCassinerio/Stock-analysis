@@ -75,6 +75,13 @@ import pandas as pd
 
 def av_financials(ticker,key,headers):
 
+    '''
+
+    ticker='AAPL'
+    key = 'B6T9Z1KKTBKA2I1C'
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
+    '''
+
     sections = ['BALANCE_SHEET', 'INCOME_STATEMENT', 'CASH_FLOW']
 
     result_df = pd.DataFrame()
@@ -115,50 +122,45 @@ def av_financials(ticker,key,headers):
 
 
 
-        fin=financial_statements
-
-
-        fin = fin.rename(columns={'fiscalDateEnding': 'Date',
+    #DATA PREPARATION
+        #VARIABLES AND FORMAT
+        result_df = result_df.rename(columns={'fiscalDateEnding': 'Date',
+                                  'totalRevenue': 'Revenue',
+                                  'netIncomeFromContinuingOperations': 'Net Income',
+                                  'depreciationAndAmortization': 'Depreciation',
+                                  'capitalExpenditures': 'Capex',
+                                  'propertyPlantEquipment': 'PPE',
+                                  'cashAndShortTermInvestments': 'Cash and ST Investments',
                                   'cashAndCashEquivalentsAtCarryingValue': 'Cash',
-                                  'commonStockSharesOutstanding': 'Shares',
+                                  'totalCurrentAssets': 'Assets Current',
                                   'totalAssets': 'Assets',
-                                  'capitalExpenditures': 'PPEchange',  R
-                                  'totalCurrentAssets': 'CurrentAssetsRevenue',
-                                  'totalAssets': 'Depreciation',depreciationDepletionAndAmortization/depreciationmAndAmortization R
-                                  'totalAssets': 'Assets Current',
-                                  'totalAssets': 'Liabilities Current',totalCurrentLiabilities R
-                                  'totalAssets': 'Liabilities',totalLiabilities R
+                                  'totalCurrentLiabilities': 'Liabilities Current',
+                                  'totalLiabilities': 'Liabilities',
+                                  'longTermDebtNoncurrent': 'Long Term Debt',
+                                   'commonStockSharesOutstanding': 'Shares'})
+        result_df['Date'] = pd.to_datetime(result_df['Date'])
+        for col in ['Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
+                    'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt', 'Shares',
+                    'incomeTaxExpense','incomeBeforeTax','interestExpense','totalNonCurrentLiabilities']:
+            result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
 
-                                  'totalAssets': 'Date',totalNonCurrentLiabilities
-                                  'totalAssets': 'Date',longTermDebt
-                                  'totalAssets': 'Date',longTermDebtNoncurrent
-                                  'totalAssets': 'Date',commonStockSharesOutstanding R
-                                  'totalAssets': 'Date',totalRevenue R
-                                  'totalAssets': 'Date',NetIncome_y/oder _x/netIncomeFromContinuingOperations R
+        #tax
+        result_df['tax'] = result_df['incomeTaxExpense'] / result_df['incomeBeforeTax']
+        reversed_tax_ratio = result_df['tax'].iloc[::-1]
+        result_df['tax'] = reversed_tax_ratio.rolling(window=16, min_periods=16).median().iloc[::-1]  # mean
+        #kd
+        reversed_interest_expense = result_df['interestExpense'].iloc[::-1]
+        result_df['interestExpensecumm'] = reversed_interest_expense.rolling(window=4, min_periods=4).sum().iloc[::-1]
+        result_df['kd'] = result_df['interestExpensecumm'] / result_df['totalNonCurrentLiabilities']
 
-        https: // finance.yahoo.com / quote / AAPL / cash - flow /
-
-        })
-        fin['Date'] = pd.to_datetime(fin['Date'])
-        for col in ['Shares', 'totalNonCurrentLiabilities', 'Cash', 'operatingCashflow', 'PPE',
-                    'incomeTaxExpense', 'incomeBeforeTax', 'interestExpense']:
-            fin[col] = pd.to_numeric(fin[col], errors='coerce')
-
-        fin['tax'] = fin['incomeTaxExpense'] / fin['incomeBeforeTax']
-        reversed_tax_ratio = fin['tax'].iloc[::-1]
-        fin['tax'] = reversed_tax_ratio.rolling(window=16, min_periods=16).median().iloc[::-1]  # mean
-        reversed_interest_expense = fin['interestExpense'].iloc[::-1]
-        fin['interestExpensecumm'] = reversed_interest_expense.rolling(window=4, min_periods=4).sum().iloc[::-1]
-        fin['kd'] = fin['interestExpensecumm'] / fin['totalNonCurrentLiabilities']
-
-
-
-
-        fin2 = fin2[['Date', 'fcf', 'Shares', 'totalNonCurrentLiabilities', 'Cash', 'kd', 'tax']]
+        result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
+                               'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
+                               'Shares','kd', 'tax']]
 
 
 
     return result_df
+
 
 
 
