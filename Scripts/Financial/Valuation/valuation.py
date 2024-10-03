@@ -6,6 +6,7 @@ import requests
 import re
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from functools import partial
 
 ################## VALUATION
 
@@ -200,27 +201,33 @@ def damodaran_1(ticker_data):  # yahooinput
 def damodaran_2(ticker_data,macros):
     ############################## 1 - DATA PREPARATION ##############################
     '''data =result_df
-
+    ticker_data,macros
     '''
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
-
-
+    data = data.drop_duplicates(subset='Date', keep='first')
+    data=data.head(16) #last 4 years of Q data
+    data['Date Unix'] = data['Date'].astype(np.int64) // 10**9
+'''
     for col in data.columns:
         if col != 'Date':
             data[col] = pd.to_numeric(data[col], errors='coerce')  # Convert to float, coerce invalid to NaN
-
-    data['Year'] = data['Date'].dt.year
-    data = data.sort_values(by='Date', ascending=True)
+''''''
+    data['Year'] = data['Date'].dt.year'''
+    data = data.sort_values(by='Date Unix', ascending=True)
     data = data.dropna(subset=['Revenue'])
-    data['Revenue Change'] = data['Revenue'].pct_change(periods=1)
+    data['Revenue Change'] = data['Revenue'].pct_change(periods=1)*100
     data = data.dropna(subset=['Revenue Change'])
+
+    '''fig = px.scatter(data, x='Date Unix', y='Revenue Change')
+    fig.show()'''
 
     ############################## 2 - RETURN FITTING ##############################
     scaler_x = MinMaxScaler()
     scaler_y = MinMaxScaler()
-    years_scaled = scaler_x.fit_transform(data['Year'].values.reshape(-1, 1)).flatten()
+    date_scaled = scaler_x.fit_transform(data['Date Unix'].values.reshape(-1, 1)).flatten()
     revenue_scaled = scaler_y.fit_transform(data['Revenue Change'].values.reshape(-1, 1)).flatten()
+
 
 
     '''functions = [salesprojection_logex,salesprojection_exfall_rise]
@@ -236,13 +243,33 @@ def damodaran_2(ticker_data,macros):
         if r2 > max_r2:
             max_r2 = r2
             best_fit_params = popt
-            best_function = func'''
+            best_function = func
+            
+            def salesprojection_exfall_rise(t,a,b,c):
+    return a + np.exp(-b * (t - c))
+            
+            
+            
+            '''
 
-    g=
+    def salesprojection_exfall_rise(t, a, b, c):
+        return a + np.exp(-b * (t - c))
+
+    g=macros['g']
+    g_scaled = scaler_y.transform(np.array([[g]]))[0][0] # g must be reshaped for the scaler
+     # Get the scaled value from the array
+
     best_function=salesprojection_exfall_rise
-    best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
+
+    best_function_fixed = partial(best_function,a=g_scaled)
+    best_fit_params, _ = curve_fit(best_function, date_scaled, revenue_scaled, maxfev=100000)
     y_pred = best_function(years_scaled, *best_fit_params)
     max_r2 = r2_score(revenue_scaled, y_pred)
+
+
+
+
+
 
 
     ############################## 3 - Vertical Analysis to Revenue ##############################

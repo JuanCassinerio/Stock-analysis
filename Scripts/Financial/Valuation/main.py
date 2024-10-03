@@ -8,22 +8,23 @@ from datetime import date
 import pandas as pd
 import plotly.io as pio
 from pathlib import Path
-
-pio.renderers.default='browser'
+import plotly.express as px
+import plotly.graph_objects as go
+pio.renderers.default = 'browser'
 
 #MODULES
 from Scripts.Financial.Database.ticker_scrape import price,companydescription,av_financials
-from valuation import damodaran_2
+from Scripts.Financial.Valuation.valuation import damodaran_2
 from Scripts.Financial.Database.macro_scrape import dmd,gdpworld,fred
 
 # FUNCIONES
 def tickerdata(ticker):
     key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
-    #financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
-    path = Path.cwd().parent.parent.absolute()/'Database'/'db'
+    financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
+    '''   path = Path.cwd().parent.parent.absolute()/'Database'/'db'
 
-    financial_statements = pd.read_csv(path/'financials.csv')
+    financial_statements = pd.read_csv(path/'financials.csv')'''
     #fin = financialdata(ticker) #yahoo last 4 years
     start_date = financial_statements['Date'].iloc[-1]
 
@@ -36,70 +37,61 @@ def macrodata(start_date):
     path = Path.cwd().parent.absolute()/'Database'/'db'
     SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
 
-    rates=fred()
-    ERP = dmd(path)[['Year', 'Implied ERP (FCFE)']]
-
+    rates=fred()['rf'].mean()
+    #ERP = dmd()[['Year', 'Implied ERP (FCFE)']]['Implied ERP (FCFE)'].mean()
+    ERP=5
     g=gdpworld()
+    g=g['gdp growth'].iloc[-1]
 
-    macros = {'SPY':SPY,'Rf':Rf,'ERP':ERP,'g':g}
+    macros = {'SPY':SPY,'Rf':rates,'ERP':ERP,'g':g}
 
     return macros
+
+def results_plotter(ticker_data,results):
+    fig = px.line(ticker_data['price'], x='Date', y='Adj Close')  # Existing line
+
+    results['Date_t0']
+    results['TarjetPrice_t0']
+    results['TarjetPrice_t1']
+    results['R2']
+    results['Fitting function']
+    results['Fitting params']
+    results['Projected Financial Statements']
+
+    # Extract necessary data from ticker_data['description']
+    ticker_info = ticker_data['description']
+    summary = ticker_info['Summary']  # Exclude the summary
+    link_yf = ticker_info['link_yf']
+    target_mean_price = ticker_info['targetMeanPrice']
+    target_high_price = ticker_info['targetHighPrice']
+    target_low_price = ticker_info['targetLowPrice']
+
+    # Show the plot
+    fig.show()
+
+    return
 
 #
 if __name__ == "__main__":
 
-
-
     ticker = 'AAPL'
     #for ticker in tickerlist(calculate return
-        ticker_data,start_date=tickerdata(ticker)[0][1]
+
+        # GET STOCK AND MACROECONOMICAL VARIABLES
+        ticker_data,start_date=tickerdata(ticker)
         macros=macrodata(start_date)
 
-
-        price=damodaran(ticker_data,macros)[0]
-        results = {'Date_t0': Datelast_date, 'TarjetPrice_t0': TarjetPrice_0today, 'TarjetPrice_t1': TarjetPrice_1yplus
-            , 'R2': max_r2, 'Fitting function': best_function, 'Fitting params': best_fit_params
-            , 'Projected Financial Statements': data}
+        # VALUATE STOCK
+        results=damodaran_2(ticker_data,macros)
 
 
-        #results
-        plot grpah with price taarjet(x2) + yf reference, margin errors, r2and low plot with
-
-
-
-
-
-
-
-
-
+        # SHOW RESULTS
+        results_plotter(ticker_data,results)
 
 
     '''
-    path = Path.cwd().absolute()/'Scripts'/'Financial'/'Database'/'db'
-
-    financial_statements = pd.read_csv(path/'financials.csv')
-    financial_statements['Date'] = pd.to_datetime(financial_statements['Date'])
-    
-    start_date = financial_statements['Date'].iloc[-1]
-    end_date = date.today()
-    SPY=price('SPY', start_date, end_date)
-   
- 
-
-    
-    '''
-
-
-    '''
+     plot grpah with price taarjet(x2) + yf reference, margin errors, r2and low plot with
     company interest rate is dependant on rf or rfund
-    
-    
-    
-    
+    how to project beta
     
     '''
-
-
-
-

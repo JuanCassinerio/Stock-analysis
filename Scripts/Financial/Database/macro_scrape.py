@@ -7,24 +7,19 @@ https://fred.stlouisfed.org/series/CORESTICKM159SFRBATL + personal account api k
 #libraries
 import datetime
 from fredapi import Fred
-import yfinance as yf
 import warnings
-
 from bs4 import BeautifulSoup
-
 import zipfile
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
+from functools import partial
 from io import BytesIO
-
-
 import requests
 import json
 import pandas as pd
 from datetime import date
 import numpy as np
-
 import plotly.io as pio
 import plotly.express as px
 import plotly.graph_objects as go
@@ -37,7 +32,11 @@ def salesprojection_exfall_rise(t,g, a, b):
     return g + np.exp(-a * (t - b))
 
 
-def data_fitting(function,parameters_0,x,y,maxiters):
+def data_fitting(function,x,y):
+    x=df_fitting['Date']
+    y=df_fitting['rf']
+    function=salesprojection_exfall_rise
+    maxiters=100000
 
     #scaled data for big mangnitude difference between X and Y
     scaler_x = MinMaxScaler()
@@ -45,38 +44,23 @@ def data_fitting(function,parameters_0,x,y,maxiters):
     x_scaled = scaler_x.fit_transform(x.values.reshape(-1, 1)).flatten()
     y_scaled = scaler_y.fit_transform(y.values.reshape(-1, 1)).flatten()
 
-    parameters, _ = curve_fit(function, x_scaled, y_scaled, p0=parameters_0, maxfev=maxiters)
+    parameters, _ = curve_fit(function, x_scaled, y_scaled, maxfev=maxiters)
     y_pred = function(x_scaled, *parameters)
     r2 = r2_score(y_scaled, y_pred)
 
-    return paremeters,r2
+    return parameters,r2
 
 def data_projection(function,parameters,x,y,m_projected):
-
-
-
-
     extrapolated_data = []
-    x1 = df['Year'].iloc[-1] + 1
-
-    for i in range(m + 1):
-        next_x = x1 + i
-        next_y = function(next_x, *parameters)
+    x0 = x.iloc[-1] + pd.DateOffset(years=1)
+    m_projected=10
+    for i in range(m_projected + 1):
+        next_x = x0 + + pd.DateOffset(years=1)*i
+        next_x_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
+        next_y_scaled = function(next_x_scaled, *parameters)
+        next_y = scaler_y.inverse_transform(next_y_scaled)  # unScale
         extrapolated_data.append([next_x, next_y])
-    ex = pd.DataFrame(extrapolated_data, columns=['x', 'y_RF'])
-
-
-    for i in range(0,20)
-        if i==20:
-            error='max iters reached'
-            exit()
-        future_year = Datelast_date + pd.DateOffset(years=1)
-        future_year_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
-        revenue_change = scaler_y.inverse_transform(best_function(future_year_scaled, *best_fit_params).reshape(-1, 1))  # unScale
-        revenue *= revenue_change
-        future_years.append(future_year)
-        revenues.append(revenue)
-
+    ex = pd.DataFrame(extrapolated_data, columns=['x', 'y'])
 
     return ex
 
@@ -103,8 +87,9 @@ def fred():
 
     df['rn.real'] = df['rn']-df['Inflation']
     df = df.dropna()
+    df = df[df['Date'] >= '2008-01-01 00:00:00'][['Date','rf']]
 
-'''
+    '''
     ticker='^GSPC'
     stock_data = yf.download(ticker, start=start_date, end=end_date)
     stock_data['Marketreturn']=stock_data['Adj Close'].pct_change(252) * 100
@@ -115,49 +100,51 @@ def fred():
     df.dropna()
     df['Mean_SPY-rf'] = df['SPY-rf'].expanding().mean()
     df['Mean_SPY-rf'] =df['SPY-rf'].rolling(window=12*30).mean()
-    df['Year'] = df['Date'].dt.year'''
-
-
-
-
-    dmd = dmd[['Year', 'Implied ERP (FCFE)']]
-df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].str.rstrip('%').astype(float)
-
-
-    # Fill in missing values using the mean of the previous and next available values
-    df['rf'] = df['rf'].interpolate(method='linear').round(2)
-    df['Marketreturn'] = df['Marketreturn'].interpolate(method='linear').round(2)
-    df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].interpolate(method='linear').round(2)
-    #df['SPY'] = df['SPY'].interpolate(method='linear').round(2)
-
-    df = df.rename(columns={'rf':'RF'})
-    df = df.rename(columns={'Implied ERP (FCFE)': 'MP'})
-    df = df.rename(columns={'Marketreturn': 'RM'})
-
-
     df['Year'] = df['Date'].dt.year
-    dff = df[df['Year'] >= 2008]
-'''
+
+    df['rf'] = df['rf'].interpolate(method='linear').round(2)
+
+
+
     # data fitting
+    df = df[df['Date'] >= '2008-01-01 00:00:00'][['Date','rf']]
+
+  
+    fig = px.line(df_fitting, x='Date', y='rf', title='Dolar Inflation U.S. (12 months)')  # Existing line
     
+    fig.show()
     
-    print(r2)'''
+    fig = px.line( x=x_scaled, y=y_scaled, title='Dolar Inflation U.S. (12 months)')  # Existing line
+    
+  
+
+    df_fitting = df[df['Date'] >= '2020-01-01 00:00:00'][['Date','rf']]
+
+
+    fixed_g = df['rf'].mean()
+    salesprojection_exfall_rise_partial = partial(salesprojection_exfall_rise, g=fixed_g)
+    parameters,r2=data_fitting(salesprojection_exfall_rise_partial,df_fitting['Date'],df_fitting['rf'])
+
+    ex=data_projection(function,parameters,_fitting,y,m_projected)
+
+
+    print(r2)
 
     #data projection
 
+    ex_rf=data_projection(function,parameters,x,y,m_projected)
 
 
 
 
-    dffl = pd.concat([df,ex], ignore_index=True)
 
-    df = df[['Date','RF','MP','Year']]
+    dffl = pd.concat([df,ex], ignore_index=True).reset.index
     df.to_csv(folder_path0, index=False)
 
 
+        |'''
 
-
-    return fred
+    return df
 
 
 
@@ -170,7 +157,8 @@ df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].str.rstrip('%').astype(float
     
     # Plot
 
-    fig = px.line(df, x=df.index, y='annual_inflation', title='Dolar Inflation U.S. (12 months)')  # Existing line
+    fig = px.line(df, x='Date', y='rf', title='Dolar Inflation U.S. (12 months)')  # Existing line
+    
     fig.add_trace(go.Scatter(x=df.index, y=[inflation_mean] * len(df.index),
                              mode='lines',
                              name='Average Inflation',
@@ -183,45 +171,8 @@ df['Implied ERP (FCFE)'] = df['Implied ERP (FCFE)'].str.rstrip('%').astype(float
                              mode='lines',
                              name='Average Inflation',
                              line=dict(dash='dash')))
-    fig.show()'''
-'''
-    x=dff['Year']
-    y=dff['RF']
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y_RF, mode='markers', name='fitting'))
-    fig.add_trace(go.Scatter(x=ex_RF['Date'], y=ex_RF['y_RF'], mode='markers', name='extrapolation data'))
-    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='present data'))
-    fig.update_layout(width=700,height=400)
     fig.show()
     '''
-
-'''
-x=dff['Year']
-y=dff['MP']
-
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=x, y=y_MP, mode='markers', name='fitting'))
-fig.add_trace(go.Scatter(x=ex_MP['Date'], y=ex_MP['y_MP'], mode='markers', name='extrapolation data'))
-fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='present data'))
-fig.update_layout(width=700,height=400)
-fig.show()
-'''
-'''
-   start_date = datetime.datetime.now() - datetime.timedelta(days=365*60)
-   end_date = datetime.datetime.now()
-
-   ax = df.plot(x='Date', y='rn',  label='Rate daily')
-   df.plot(x='Date', y='rf', ax=ax, label='Rate 10 Bond')
-   df.plot(x='Date', y='Marketreturn', ax=ax, label='Marketreturn')
-
-   df.plot(x='Date', y='rn.real', ax=ax, label='rn.real')
-   ax.axhline(y=0, color='r', linestyle='--')
-   plt.legend()  # Add legend
-   plt.xlim(start_date,end_date)
-   plt.ylim(-20,50)
-   plt.show()
-   '''
 
 
 def gdpworld():
@@ -285,10 +236,9 @@ def gdpworld():
     fig.update_layout(width=700,height=400)
     fig.show()
     '''
-    return gdp
+    return g
 
-
-def dmd(path):
+def dmd():
     '''
     https: // pages.stern.nyu.edu / ~adamodar /
     https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histimpl.html
@@ -306,8 +256,18 @@ def dmd(path):
 
     columns = data[0]
     dmd = pd.DataFrame(data)
-    dmd =dmd.dropna()['Implied ERP (FCFE)']
-    '''ERP = pd.read_excel(path / 'histimpl.xls', engine='xlrd')
+    dmd.columns = dmd.iloc[0]  # Set the first row as the header
+    dmd = dmd[1:].reset_index(drop=True)  # Drop the first row and reset the index
+
+    dmd['Implied ERP (FCFE)'] = dmd['Implied ERP (FCFE)'].replace(['', ' ', None], np.nan)
+
+    # Step 2: Drop rows where 'Implied ERP (FCFE)' is NaN
+    dmd = dmd.dropna(subset=['Implied ERP (FCFE)']).reset_index(drop=True)
+    dmd['Implied ERP (FCFE)'] = dmd['Implied ERP (FCFE)'].str.replace('%', '', regex=False).astype(float)
+
+
+    '''
+    ERP = pd.read_excel(path / 'histimpl.xls', engine='xlrd')
     first_non_nan_row = ERP.dropna().index[0]
 
     ERP.columns = ERP.iloc[first_non_nan_row]

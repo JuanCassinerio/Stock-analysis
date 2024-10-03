@@ -25,16 +25,6 @@ def price(ticker,start_date,end_date): #STOCKS PRICES (DIVIDEND ACCOUNTED)
     return price
 
 
-'''
-start_date = financial_statements['Date'].iloc[-1]
-end_date = date.today()
-SPY=price('SPY', start_date, end_date)
-
-
-
-'''
-
-
 def companydescription(ticker): # COMPANY DESCRIPTION
 
     company_info = yf.Ticker(ticker).info
@@ -70,8 +60,6 @@ def companydescription(ticker): # COMPANY DESCRIPTION
 ALPHAVANTAGE https://www.alphavantage.co  KEY 'B6T9Z1KKTBKA2I1C'
 '''
 
-import requests
-import pandas as pd
 
 def av_financials(ticker,key,headers):
 
@@ -156,12 +144,7 @@ def av_financials(ticker,key,headers):
         result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
                                'Shares','kd', 'tax']]
-
-
-
     return result_df
-
-
 
 
 def sec():
