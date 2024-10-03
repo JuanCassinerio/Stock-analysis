@@ -141,6 +141,11 @@ def av_financials(ticker,key,headers):
         result_df['interestExpensecumm'] = reversed_interest_expense.rolling(window=4, min_periods=4).sum().iloc[::-1]
         result_df['kd'] = result_df['interestExpensecumm'] / result_df['totalNonCurrentLiabilities']
 
+        result_df['tax'] = result_df['tax'].fillna(method='ffill').fillna(method='bfill')  # fills nan with closest
+
+        result_df['kd'] = result_df['kd'].fillna(method='ffill').fillna(method='bfill') #fills nan with closest
+
+
         result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
                                'Shares','kd', 'tax']]

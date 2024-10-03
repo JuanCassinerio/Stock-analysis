@@ -22,9 +22,7 @@ def tickerdata(ticker):
     key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
     financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
-    '''   path = Path.cwd().parent.parent.absolute()/'Database'/'db'
 
-    financial_statements = pd.read_csv(path/'financials.csv')'''
     #fin = financialdata(ticker) #yahoo last 4 years
     start_date = financial_statements['Date'].iloc[-1]
 
@@ -38,12 +36,11 @@ def macrodata(start_date):
     SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
 
     rates=fred()['rf'].mean()
-    #ERP = dmd()[['Year', 'Implied ERP (FCFE)']]['Implied ERP (FCFE)'].mean()
-    ERP=5
+    ERP = dmd()[['Year', 'Implied ERP (FCFE)']]['Implied ERP (FCFE)'].mean()
     g=gdpworld()
-    g=g['gdp growth'].iloc[-1]
+    g,g_std=g['gdp growth'].iloc[-1],g['gdp growth'].std()
 
-    macros = {'SPY':SPY,'Rf':rates,'ERP':ERP,'g':g}
+    macros = {'SPY':SPY,'Rf':rates,'ERP':ERP,'g':g,'g_std':g_std}
 
     return macros
 
@@ -71,7 +68,7 @@ def results_plotter(ticker_data,results):
 
     return
 
-#
+
 if __name__ == "__main__":
 
     ticker = 'AAPL'

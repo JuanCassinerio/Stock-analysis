@@ -36,8 +36,6 @@ def aprox(value, target, tolerance):
 
 def beta(stock,macros): #5 years monthly
 
-    spy=macros['SPY']
-
     stock['Month'] = stock['Date'].dt.month
     stock['Year'] = stock['Date'].dt.year
     df = pd.merge(spy, stock, on='Date')
@@ -58,7 +56,7 @@ def beta(stock,macros): #5 years monthly
     df['beta'] = df['cov'] / df['var']
     df=df[['Date','price','beta']]
     beta = df['beta'].iloc[-1]
-    ke=macros['Rf']+beta*macros['Rp']
+    ke=macros['Rf']+beta*macros['ERP']
 
 
     return beta,ke
@@ -205,15 +203,11 @@ def damodaran_2(ticker_data,macros):
     '''
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
+
     data = data.drop_duplicates(subset='Date', keep='first')
     data=data.head(16) #last 4 years of Q data
     data['Date Unix'] = data['Date'].astype(np.int64) // 10**9
-'''
-    for col in data.columns:
-        if col != 'Date':
-            data[col] = pd.to_numeric(data[col], errors='coerce')  # Convert to float, coerce invalid to NaN
-''''''
-    data['Year'] = data['Date'].dt.year'''
+    data['Year'] = data['Date'].dt.year
     data = data.sort_values(by='Date Unix', ascending=True)
     data = data.dropna(subset=['Revenue'])
     data['Revenue Change'] = data['Revenue'].pct_change(periods=1)*100
@@ -227,8 +221,6 @@ def damodaran_2(ticker_data,macros):
     scaler_y = MinMaxScaler()
     date_scaled = scaler_x.fit_transform(data['Date Unix'].values.reshape(-1, 1)).flatten()
     revenue_scaled = scaler_y.fit_transform(data['Revenue Change'].values.reshape(-1, 1)).flatten()
-
-
 
     '''functions = [salesprojection_logex,salesprojection_exfall_rise]
     max_r2 = -np.inf
@@ -248,29 +240,21 @@ def damodaran_2(ticker_data,macros):
             def salesprojection_exfall_rise(t,a,b,c):
     return a + np.exp(-b * (t - c))
             
-            
-            
-            '''
+    '''
 
     def salesprojection_exfall_rise(t, a, b, c):
         return a + np.exp(-b * (t - c))
 
     g=macros['g']
+    g_std = macros['g_std']
     g_scaled = scaler_y.transform(np.array([[g]]))[0][0] # g must be reshaped for the scaler
-     # Get the scaled value from the array
 
     best_function=salesprojection_exfall_rise
 
     best_function_fixed = partial(best_function,a=g_scaled)
     best_fit_params, _ = curve_fit(best_function, date_scaled, revenue_scaled, maxfev=100000)
-    y_pred = best_function(years_scaled, *best_fit_params)
+    y_pred = best_function(date_scaled, *best_fit_params)
     max_r2 = r2_score(revenue_scaled, y_pred)
-
-
-
-
-
-
 
     ############################## 3 - Vertical Analysis to Revenue ##############################
     variables = ['Net Income', 'Depreciation', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash']
@@ -278,46 +262,59 @@ def damodaran_2(ticker_data,macros):
 
     ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
     # wacc constant
-    ke = ke(ticker_data['price'], macros)[2]
-    Marketcap=ticker_data['price']['Adj Close'].iloc[0]*data['Shares']
-    wacc=ke*(Marketcap/data['Assets'])+data['Assets']*(1-data['tax'])*(data['Liabilities']/data['Assets'])
+    data = data.sort_values(by='Date', ascending=True)
+    beta,ke = beta(ticker_data['price'], macros)
+    shares = data['Shares'].iloc[-1]
+    Marketcap=ticker_data['price']['Adj Close'].iloc[0]*shares
+    wacc=(ke*(Marketcap/data['Assets'].iloc[-1])+data['kd'].iloc[-1]*(1-data['tax'].iloc[-1])*(data['Liabilities'].iloc[-1]/data['Assets'].iloc[-1]))
 
     # other variables
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
     Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
-    shares = data['Shares'].iloc[-1]
 
     ############################## 5 - CF AND WACC Projection ##############################
     # CF Projection
 
-    data = data.sort_values(by='Date', ascending=True)
     data['generated'] = 0
-
-    data.drop('Year', axis=1)
-
-    Datelast_date = data['Date'].iloc[-1]
-    revenue = data['Revenue'].iloc[-1]
+    Date_last = data['Date'].iloc[-1]
+    future_date = Date_last
+    revenue_last = data['Revenue'].iloc[-1]
+    revenue = revenue_last
     revenues=[]
-    future_years=[]
+    future_dates=[]
+    future_dates_Unix=[]
 
 
-    i=0
-    for i in range(0,20)
-        if i==20:
-            error='max iters reached'
-            exit()
-        future_year = Datelast_date + pd.DateOffset(years=1)
-        future_year_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
-        revenue_change = scaler_y.inverse_transform(best_function(future_year_scaled, *best_fit_params).reshape(-1, 1))  # unScale
-        revenue *= revenue_change
-        future_years.append(future_year)
+    for i in range(0, 20):
+        if i == 20:
+            error = 'max iterations reached'
+            break  # Replace `exit()` with `break` to avoid terminating the whole program
+
+        # Calculate the next future date
+        future_date +=  pd.DateOffset(years=1)  # Increment date by one year 1 Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        future_date_Unix = int(future_date.timestamp())
+
+        # Scale the Unix date for use in the function
+        future_date_Unix_scaled = scaler_x.transform(np.array([[future_date_Unix]]))[0][0]
+
+        # Predict the revenue change and unscale the predicted value
+        revenue_change = scaler_y.inverse_transform(np.array([[best_function(future_date_Unix_scaled, *best_fit_params)]]))[0][0]  # Unscale
+
+        # Update the revenue with the predicted change
+        revenue *= 1 + revenue_change
+        print(revenue_change)
+        # Append the values to the corresponding lists
+        future_dates.append(future_date)
+        future_dates_Unix.append(future_date_Unix)
         revenues.append(revenue)
-        if aprox(revenue, g, g_desv) is True :
+
+        # Check if the revenue change approximation is close enough to stop
+        if aprox(revenue_change * 100, g, g_std):
             break
-        else
-            continue
 
     '''
+    
+    #https://valueinvesting.io/AAPL/valuation/wacc
     salesprojection_logex(t, g, rev_0, a, b, c)
     future_years
     best_fit_params, _ = curve_fit(best_function, years_scaled, revenue_scaled, p0=[g, rev_0, t_0, a, b, c], maxfev=100)
@@ -336,16 +333,18 @@ def damodaran_2(ticker_data,macros):
     
         wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
     '''
+    revenues = np.array(revenues)
+
     net_incomes = (revenues * verticalratio['Net Income']).flatten()
     current_assets = (revenues * verticalratio['Assets Current']).flatten()
     current_liabilities = (revenues * verticalratio['Liabilities Current']).flatten()
     cash = (revenues * verticalratio['Cash']).flatten()
-    net_pp = (revenues * verticalratio['Net PPE']).flatten()
+    net_pp = (revenues * verticalratio['PPE']).flatten()
+    Capex =  (revenues * verticalratio['Capex']).flatten()
     depreciation = (net_pp / Years_Depreciation).flatten()
 
-    # Create a DataFrame for new data
-    new_year_data = {'Date': future_years,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Depreciation': depreciation,'generated': 1}
-    new_df = pd.DataFrame(new_year_data)
+    projected_data = {'Date': future_dates,'Date Unix':future_dates_Unix,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Capex':Capex,'Depreciation': depreciation,'generated': 1}
+    new_df = pd.DataFrame(projected_data)
     data = pd.concat([data, new_df], ignore_index=True)
 
     # FCFF
@@ -355,58 +354,49 @@ def damodaran_2(ticker_data,macros):
     data['Free Cash Flow'] = Operatingcashflow - Capex - NWCCh
 
     fcfnext = data['Free Cash Flow'].iloc[-1] * (1 + g / 100)
-    terminalvalue = fcfnext / ((wacc.iloc[-1] / 100) - (g / 100))
+    terminalvalue = fcfnext / ((wacc/ 100) - (g / 100))
     Subtotal = data['Free Cash Flow'].tolist()
     Subtotal[-1] += terminalvalue
 
-    def npv(cash_flows, wacc, g):
+    def npv(cash_flows, wacc):
         npv = 0
-        for t, cash_flow,wacc in enumerate(cash_flows):
+        for t, cash_flow in enumerate(cash_flows):
             npv += cash_flow / (1 + (wacc / 100)) ** t
         return npv
 
-    VA_Asset = npv(Subtotal[-5:], wacc, g)
+    VA_Asset = npv(Subtotal[-5:], wacc)
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_mean = VA_Equity / shares
 
 
     # Today valuation
-    fcfnext0 = data['fcf'].iloc[-2] * (1 + g / 100)
+    fcfnext0 = data['Free Cash Flow'].iloc[-2] * (1 + g / 100)
     terminalvalue0 = fcfnext0 / ((wacc / 100) - (g / 100))
-    Subtotal0 = data['fcf'].tolist()
+    Subtotal0 = data['Free Cash Flow'].tolist()
     del Subtotal0[:4]
     del Subtotal0[-1]
     Subtotal0.append(terminalvalue0)
-    VA_Asset = npv(Subtotal0, wacc, g)
+    VA_Asset = npv(Subtotal0, wacc)
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_0today = VA_Equity / shares
 
     # +1 year valuation
-    fcfnext1 = data['fcf'].iloc[-1] * (1 + g / 100)
+    fcfnext1 = data['Free Cash Flow'].iloc[-1] * (1 + g / 100)
     terminalvalue1 = fcfnext1 / ((wacc / 100) - (g / 100))
-    Subtotal1 = data['fcf'].tolist()
+    Subtotal1 = data['Free Cash Flow'].tolist()
     del Subtotal1[:5]
     Subtotal1.append(terminalvalue1)
-    VA_Asset = npv(Subtotal1, wacc, g)
+    VA_Asset = npv(Subtotal1, wacc)
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_1yplus = VA_Equity / shares
 
-    results= {'Date_t0':Datelast_date,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus
+
+
+    # margin errors
+
+    results= {'Date_t0':Date_last,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus
                 ,'R2':max_r2,'Fitting function':best_function,'Fitting params':best_fit_params
                 ,'Projected Financial Statements':data}
-
-
-    ''' return graprh
-    
-    data['color'] = data['generated'].apply(lambda x: 'red' if x == 0 else 'blue')
-    fig = px.scatter(data,x='Date',y='Total Revenue', color='color')
-    fig.update_traces(mode='markers+lines', line=dict(color='black', dash='dash'),marker=dict(size=10))
-    fig.update_layout(title='Total Revenue')
-    fig.show()
-    
-    
-    
-    '''
 
     return results
 

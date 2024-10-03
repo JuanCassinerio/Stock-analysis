@@ -55,7 +55,7 @@ def data_projection(function,parameters,x,y,m_projected):
     x0 = x.iloc[-1] + pd.DateOffset(years=1)
     m_projected=10
     for i in range(m_projected + 1):
-        next_x = x0 + + pd.DateOffset(years=1)*i
+        next_x = x0 +  pd.DateOffset(years=1)*i
         next_x_scaled = scaler_x.transform(future_years.year.values.reshape(-1, 1)).flatten()
         next_y_scaled = function(next_x_scaled, *parameters)
         next_y = scaler_y.inverse_transform(next_y_scaled)  # unScale
