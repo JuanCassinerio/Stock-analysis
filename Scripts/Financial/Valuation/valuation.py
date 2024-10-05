@@ -182,19 +182,6 @@ def damodaran_1(ticker_data):  # yahooinput
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_mean = VA_Equity / shares
 
-    # extra analysis
-    ''' return graprh
-
-    data['color'] = data['generated'].apply(lambda x: 'red' if x == 0 else 'blue')
-    fig = px.scatter(data,x='Date',y='Total Revenue', color='color')
-    fig.update_traces(mode='markers+lines', line=dict(color='black', dash='dash'),marker=dict(size=10))
-    fig.update_layout(title='Total Revenue')
-    fig.show()
-
-
-
-    '''
-
     return TarjetPrice_mean, wacc
 
 
@@ -244,8 +231,7 @@ def damodaran_2(ticker_data,macros):
     g = (1+macros['g']/100)**(1/4)-1 #quaterly
     data['Smoothed Revenue Change'] = data['Revenue Change'].ewm(span=4, adjust=False).mean()
     b = data['Smoothed Revenue Change'].iloc[0]-g
-    g_d = (1+macros['g_std']/100)**(1/4)-1
-    #g_scaled = scaler_y.transform(np.array([[g]]))[0][0] # g must be reshaped for the scaler
+    g_d = macros['g_std']
 
     best_function='salesprojection_exfall_rise'
 
@@ -257,12 +243,10 @@ def damodaran_2(ticker_data,macros):
 
 
     best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
-    c_d=np.sqrt(np.diag(covariance))
+    c_d=np.sqrt(np.diag(covariance)) #slope margin
     y_pred = best_function_fixed(date_scaled, *best_fit_params)
     max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
     print(max_r2,"%")
-
-    # Calculate the standard errors of the parameters
 
     '''
     fig = go.Figure()
@@ -275,7 +259,7 @@ def damodaran_2(ticker_data,macros):
     '''
 
     ############################## 3 - Vertical Analysis to Revenue ##############################
-    variables = ['Net Income', 'Depreciation','operatingCashFlow', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash']
+    variables = ['Net Income', 'Depreciation', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash','Operating Cash Flow']
     verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean() for variable in variables}
 
     ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
@@ -289,59 +273,107 @@ def damodaran_2(ticker_data,macros):
 
     # other variables
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
+    #Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
     Net_Debt = data['Long Term Debt'].iloc[-1]
+
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
-    # CF Projection
+    data['generated'] = 0
+    scenarios = { 'optimistic': best_fit_params - c_d,'normal': best_fit_params,'pessimistic': best_fit_params + c_d}
 
-    scenarios={('optimistic',g+c_d),('normal',g),('pesimistic',g-c_d)}
-    scenarios = {
-        'optimistic': g + c_d,
-        'normal': g,
-        'pessimistic': g - c_d
-    }
-    for scenario_name, g_value in scenarios.items():
-        data['generated'] = 0  # Reset generated values for each scenario
-        data['scenario'] = scenario_name  # Set the current scenario
-
-    for scenario in scenarios
-        data['generated'] = 0
-        data['scenario'] = scenarios[0]
-        best_fit_params =scenarios[1]
-    Date_last = data['Date'].iloc[-1]
-    future_date = Date_last
-    revenue_last = data['Revenue'].iloc[-1]
-    revenue = revenue_last
-    revenues=[]
-    future_dates=[]
-    future_dates_Unix=[]
+    scenarios_df = pd.DataFrame()
 
 
 
-    for i in range(0, 20):
-        if i == 20:
-            error = 'max iterations reached'
-            break  # Replace `exit()` with `break` to avoid terminating the whole program
 
-        # Calculate the next future date
-        future_date +=  pd.DateOffset(months=4)  # Increment date by one year 1 Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        future_date_Unix = int(future_date.timestamp())
-        future_date_Unix_scaled = scaler_x.transform(np.array([[future_date_Unix]]))[0][0]
+    for scenario_name, c_value in scenarios.items():
 
-        # Predict the revenue change and unscale the predicted value
-        revenue_change = best_function_fixed(future_date_Unix_scaled, *best_fit_params)
+        data_copy=data.copy()
 
-        # Update the revenue with the predicted change
-        revenue *= 1 + revenue_change
+        data_copy['generated'] = 0  # Reset generated values for each scenario
+        data_copy['scenario'] = scenario_name  # Set the current scenario
+        best_fit_params = c_value
 
-        # Append the values to the corresponding lists
-        future_dates.append(future_date)
-        future_dates_Unix.append(future_date_Unix)
-        revenues.append(revenue)
+        Date_last = data['Date'].iloc[-1]
+        future_date = Date_last
+        revenue_last = data['Revenue'].iloc[-1]
+        revenue = revenue_last
 
-        # Check if the revenue change approximation is close enough to stop
-        if aprox(revenue_change, g, g_d):
-            break
+        revenues=[]
+        future_dates=[]
+        future_dates_Unix=[]
+
+        for i in range(0, 20):
+            if i == 20:
+                error = 'max iterations reached'
+                break  # Replace `exit()` with `break` to avoid terminating the whole program
+
+            # Calculate the next future date
+            future_date +=  pd.DateOffset(months=4)  # Increment date by one year 1 Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            future_date_Unix = int(future_date.timestamp())
+            future_date_Unix_scaled = scaler_x.transform(np.array([[future_date_Unix]]))[0][0]
+
+            # Predict the revenue change and unscale the predicted value
+            revenue_change = best_function_fixed(future_date_Unix_scaled, *best_fit_params)
+
+            # Update the revenue with the predicted change
+            revenue *= 1 + revenue_change
+
+            # Append the values to the corresponding lists
+            future_dates.append(future_date)
+            future_dates_Unix.append(future_date_Unix)
+            revenues.append(revenue)
+
+            # Check if the revenue change approximation is close enough to stop
+            if aprox(revenue_change, g, g_d):
+                break
+
+        revenues = np.array(revenues)
+
+        net_incomes = (revenues * verticalratio['Net Income']).flatten()
+        current_assets = (revenues * verticalratio['Assets Current']).flatten()
+        current_liabilities = (revenues * verticalratio['Liabilities Current']).flatten()
+        cash = (revenues * verticalratio['Cash']).flatten()
+        net_pp = (revenues * verticalratio['PPE']).flatten()
+        Capex = (revenues * verticalratio['Capex']).flatten()
+        OperatingCashFlow = (revenues * verticalratio['Operating Cash Flow']).flatten()
+
+        depreciation = (net_pp / Years_Depreciation).flatten()
+
+        projected_data = {'Date': future_dates, 'Date Unix': future_dates_Unix, 'Revenue': revenues,
+                          'Net Income': net_incomes, 'Assets Current': current_assets,
+                          'Liabilities Current': current_liabilities, 'Cash': cash, 'PPE': net_pp, 'Capex': Capex,
+                          'Operating Cash Flow':OperatingCashFlow,
+                          'Depreciation': depreciation, 'generated': 1}
+        new_df = pd.DataFrame(projected_data)
+        data_copy = pd.concat([data_copy, new_df], ignore_index=True)
+
+        # FCFF
+        #Operatingcashflow = data['Net Income'] + data['Depreciation']
+        Operatingcashflow = data_copy['Operating Cash Flow']
+        Capex = data_copy['Capex'] #+ data['Depreciation']
+        #NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
+        data_copy['Free Cash Flow'] = Operatingcashflow - Capex #- NWCCh
+
+        fcfnext = data_copy['Free Cash Flow'].iloc[-1] * (1 + g)
+        terminalvalue = fcfnext / ((((1 + wacc / 100) ** (1 / 4) - 1)) - g)
+        Subtotal = data_copy['Free Cash Flow'].tolist()
+
+        Subtotal.append(terminalvalue)
+
+        def npv(cash_flows, wacc):
+            npv = 0
+            for t, cash_flow in enumerate(cash_flows):
+                t += 1
+                npv += cash_flow / (1 + (((1 + wacc / 100) ** (1 / 4) - 1))) ** (
+                            t * (1 / 4))  # Q 1/4 quaterly correction
+            return npv
+
+        VA_Asset = npv(Subtotal[-(len(new_df) + 1):], wacc)
+        VA_Equity = VA_Asset - Net_Debt
+        TarjetPrice_mean = VA_Equity / shares
+
+        results={'scenario':scenario_name,'Tarjet Price':TarjetPrice_mean,'fcflast':fcfnext,'perp':terminalvalue}
+        scenarios_df = pd.concat([scenarios_df, pd.DataFrame([results])], ignore_index=True)
 
     '''
     
@@ -364,61 +396,9 @@ def damodaran_2(ticker_data,macros):
     
         wacc = ke * (Marketcap / data['Assets']) + data['Assets'] * (1 - data['tax']) * (data['Debt'] / data['Assets'])
     '''
-    revenues = np.array(revenues)
-
-    net_incomes = (revenues * verticalratio['Net Income']).flatten()
-    current_assets = (revenues * verticalratio['Assets Current']).flatten()
-    current_liabilities = (revenues * verticalratio['Liabilities Current']).flatten()
-    cash = (revenues * verticalratio['Cash']).flatten()
-    net_pp = (revenues * verticalratio['PPE']).flatten()
-    Capex =  (revenues * verticalratio['Capex']).flatten()
-    depreciation = (net_pp / Years_Depreciation).flatten()
-    Operatingcashflow = (revenues * verticalratio['operatingCashFlow']).flatten()
-
-    projected_data = {'Date': future_dates,'Date Unix':future_dates_Unix,'Operatingcashflow':,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Capex':Capex,'Depreciation': depreciation,'generated': 1}
-    new_df = pd.DataFrame(projected_data)
-    data = pd.concat([data, new_df], ignore_index=True)
-
-    # FCFF
-    Operatingcashflow = data['Net Income'] + data['Depreciation'] + data['Depreciation']
-    Operatingcashflow = data['Operatingcashflow']
-    Capex = data['PPE'] - data['PPE'].shift(1) + data['Depreciation']
-    Capex = data['Capex']
-    NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
-    data['Free Cash Flow'] = Operatingcashflow - Capex - NWCCh
 
 
-    fcfnext = data['Free Cash Flow'].iloc[-1] * (1 + g)
-    terminalvalue = fcfnext  / ((((1+wacc/100)**(1/4)-1)) - g)
-    Subtotal = data['Free Cash Flow'].tolist()
-
-
-'''
-wacc=8.6
-fcfnext = 26707000000 * (1 + g)
-    terminalvalue = fcfnext  / ((((1+wacc/100)**(1/4)-1)) - g)
-
-Subtotal[-(len(new_df)+1):]=[fcfnext, 2342895105479]
-'''
-
-
-    Subtotal.append(terminalvalue)
-
-    def npv(cash_flows, wacc):
-        npv = 0
-        for t, cash_flow in enumerate(cash_flows):
-            t+=1
-            npv += cash_flow / (1 + (((1+wacc/100)**(1/4)-1))) ** (t*(1/4))  #Q 1/4 quaterly correction
-        return npv
-
-    VA_Asset = npv(Subtotal[-(len(new_df)+1):], wacc)
-    Net_Debt=data['Long Term Debt'].iloc[-1]
-    VA_Equity = VA_Asset - Net_Debt
-    TarjetPrice = VA_Equity / shares
-
-    return TarjetPrice
-
-
+    # margin errors
 
 
 '''
@@ -443,9 +423,12 @@ Subtotal[-(len(new_df)+1):]=[fcfnext, 2342895105479]
     VA_Equity = VA_Asset - Net_Debt
     TarjetPrice_1yplus = VA_Equity / shares'''
 
-    results= {'Date_t0':Date_last,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus
-                ,'R2':max_r2,'Fitting function':best_function,'Fitting params':best_fit_params
-                ,'Projected Financial Statements':data}
+    #results= {'Date_t0':Date_last,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus,'R2':max_r2,'Fitting function':best_function,'Fitting params':best_fit_params,'Projected Financial Statements':data}
+
+    results = {'Date_t0': Date_last, 'TarjetPrice_scenarios': scenarios_df,'R2': max_r2,
+               'Fitting function': best_function, 'Fitting params': best_fit_params,
+               'Projected Financial Statements': data}
+
 
     return results
 

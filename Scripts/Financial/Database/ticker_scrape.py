@@ -111,12 +111,14 @@ def av_financials(ticker,key,headers):
         result_df['ticker'] = ticker
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date'})
 
+    results_dfc = result_df
+    result_df=results_dfc
     #DATA PREPARATION
         #VARIABLES AND FORMAT
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date',
                                   'totalRevenue': 'Revenue',
                                   'netIncomeFromContinuingOperations': 'Net Income',
-                                  'depreciationAndAmortization': 'Depreciation',
+                                  'depreciationDepletionAndAmortization': 'Depreciation',
                                   'capitalExpenditures': 'Capex',
                                   'propertyPlantEquipment': 'PPE',
                                   'cashAndShortTermInvestments': 'Cash and ST Investments',
@@ -126,11 +128,12 @@ def av_financials(ticker,key,headers):
                                   'totalCurrentLiabilities': 'Liabilities Current',
                                   'totalLiabilities': 'Liabilities',
                                   'longTermDebtNoncurrent': 'Long Term Debt',
-                                   'commonStockSharesOutstanding': 'Shares'})
+                                  'commonStockSharesOutstanding': 'Shares',
+                                  'operatingCashflow': 'Operating Cash Flow'})
         result_df['Date'] = pd.to_datetime(result_df['Date'])
         for col in ['Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                     'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt', 'Shares',
-                    'incomeTaxExpense','incomeBeforeTax','interestExpense','totalNonCurrentLiabilities']:
+                    'incomeTaxExpense','incomeBeforeTax','interestExpense','totalNonCurrentLiabilities','Operating Cash Flow']:
             result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
 
         #tax
@@ -145,14 +148,15 @@ def av_financials(ticker,key,headers):
         result_df['tax'] = result_df['tax'].fillna(method='ffill').fillna(method='bfill')  # fills nan with closest
 
         result_df['kd'] = result_df['kd'].fillna(method='ffill').fillna(method='bfill') #fills nan with closest
-
+        #problem with kd past values
 
         result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
-                               'Shares','kd', 'tax']]
+                               'Shares','kd', 'tax','Operating Cash Flow']]
     return result_df
-'operatingCashFlow'
-,'changeInReceivables','changeInInventory'
+
+''''operatingCashFlow'
+,'changeInReceivables','changeInInventory''''
 
 def sec():
     headers = {'User-Agent': "juancassinerio@gmail.com"}
