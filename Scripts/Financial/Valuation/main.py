@@ -32,7 +32,7 @@ def tickerdata(ticker):
     return ticker_data,start_date
 
 def macrodata(start_date):
-    path = Path.cwd().parent.absolute()/'Database'/'db'
+
     SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
 
     rates=fred()['rf'].mean()

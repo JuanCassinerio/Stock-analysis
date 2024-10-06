@@ -244,7 +244,7 @@ def damodaran_2(ticker_data,macros):
     g = (1+macros['g']/100)**(1/4)-1 #quaterly
     data['Smoothed Revenue Change'] = data['Revenue Change'].ewm(span=4, adjust=False).mean()
     b = data['Smoothed Revenue Change'].iloc[0]-g
-    g_d = macros['g_std']
+    g_d = (1+macros['g_std']/100)**(1/4)-1
     #g_scaled = scaler_y.transform(np.array([[g]]))[0][0] # g must be reshaped for the scaler
 
     best_function='salesprojection_exfall_rise'
@@ -256,17 +256,13 @@ def damodaran_2(ticker_data,macros):
         return salesprojection_exfall_rise(t, g, b, c)
 
 
-    bbest_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],
-                                            maxfev=100000)
+    best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
     c_d=np.sqrt(np.diag(covariance))
     y_pred = best_function_fixed(date_scaled, *best_fit_params)
-    max_r2 = r2_score(revenue_scaled, y_pred) * 100
+    max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
     print(max_r2,"%")
 
-
     # Calculate the standard errors of the parameters
-
-
 
     '''
     fig = go.Figure()
@@ -279,7 +275,7 @@ def damodaran_2(ticker_data,macros):
     '''
 
     ############################## 3 - Vertical Analysis to Revenue ##############################
-    variables = ['Net Income', 'Depreciation', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash']
+    variables = ['Net Income', 'Depreciation','operatingCashFlow', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash']
     verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean() for variable in variables}
 
     ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
@@ -294,7 +290,7 @@ def damodaran_2(ticker_data,macros):
     # other variables
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
     Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
-
+    Net_Debt = data['Long Term Debt'].iloc[-1]
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
     # CF Projection
 
@@ -377,21 +373,33 @@ def damodaran_2(ticker_data,macros):
     net_pp = (revenues * verticalratio['PPE']).flatten()
     Capex =  (revenues * verticalratio['Capex']).flatten()
     depreciation = (net_pp / Years_Depreciation).flatten()
+    Operatingcashflow = (revenues * verticalratio['operatingCashFlow']).flatten()
 
-    projected_data = {'Date': future_dates,'Date Unix':future_dates_Unix,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Capex':Capex,'Depreciation': depreciation,'generated': 1}
+    projected_data = {'Date': future_dates,'Date Unix':future_dates_Unix,'Operatingcashflow':,'Revenue': revenues,'Net Income': net_incomes,'Assets Current': current_assets,'Liabilities Current': current_liabilities,'Cash': cash,'PPE': net_pp,'Capex':Capex,'Depreciation': depreciation,'generated': 1}
     new_df = pd.DataFrame(projected_data)
     data = pd.concat([data, new_df], ignore_index=True)
 
     # FCFF
-    Operatingcashflow = data['Net Income'] + data['Depreciation']
-    Capex = data['Capex'] + data['Depreciation']
+    Operatingcashflow = data['Net Income'] + data['Depreciation'] + data['Depreciation']
+    Operatingcashflow = data['Operatingcashflow']
+    Capex = data['PPE'] - data['PPE'].shift(1) + data['Depreciation']
+    Capex = data['Capex']
     NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
     data['Free Cash Flow'] = Operatingcashflow - Capex - NWCCh
+
 
     fcfnext = data['Free Cash Flow'].iloc[-1] * (1 + g)
     terminalvalue = fcfnext  / ((((1+wacc/100)**(1/4)-1)) - g)
     Subtotal = data['Free Cash Flow'].tolist()
 
+
+'''
+wacc=8.6
+fcfnext = 26707000000 * (1 + g)
+    terminalvalue = fcfnext  / ((((1+wacc/100)**(1/4)-1)) - g)
+
+Subtotal[-(len(new_df)+1):]=[fcfnext, 2342895105479]
+'''
 
 
     Subtotal.append(terminalvalue)
@@ -404,10 +412,13 @@ def damodaran_2(ticker_data,macros):
         return npv
 
     VA_Asset = npv(Subtotal[-(len(new_df)+1):], wacc)
+    Net_Debt=data['Long Term Debt'].iloc[-1]
     VA_Equity = VA_Asset - Net_Debt
-    TarjetPrice_mean = VA_Equity / shares
+    TarjetPrice = VA_Equity / shares
 
-    # margin errors
+    return TarjetPrice
+
+
 
 
 '''

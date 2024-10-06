@@ -5,6 +5,8 @@ import requests
 
 ######################### COMPANY DATA SCRAPING
 ######################### DATA SCRAPING
+
+ticker='AAPL'
 def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
     data_ticker = yf.Ticker(ticker)
     cf = data_ticker.cashflow.T.rename_axis('Date').reset_index()
@@ -14,6 +16,8 @@ def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
     bs = bs.drop(columns='Date')
     data = pd.concat([cf, it, bs], axis=1)
     return data
+fin=financialdata(ticker)
+
 
 def price(ticker,start_date,end_date): #STOCKS PRICES (DIVIDEND ACCOUNTED)
     price = yf.download(ticker, start=start_date, end=end_date)['Adj Close']
@@ -107,9 +111,6 @@ def av_financials(ticker,key,headers):
         result_df['ticker'] = ticker
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date'})
 
-
-
-
     #DATA PREPARATION
         #VARIABLES AND FORMAT
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date',
@@ -139,7 +140,7 @@ def av_financials(ticker,key,headers):
         #kd
         reversed_interest_expense = result_df['interestExpense'].iloc[::-1]
         result_df['interestExpensecumm'] = reversed_interest_expense.rolling(window=4, min_periods=4).sum().iloc[::-1]
-        result_df['kd'] = result_df['interestExpensecumm'] / result_df['totalNonCurrentLiabilities']
+        result_df['kd'] = result_df['interestExpensecumm'] / result_df['Long Term Debt']
 
         result_df['tax'] = result_df['tax'].fillna(method='ffill').fillna(method='bfill')  # fills nan with closest
 
@@ -150,7 +151,8 @@ def av_financials(ticker,key,headers):
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
                                'Shares','kd', 'tax']]
     return result_df
-
+'operatingCashFlow'
+,'changeInReceivables','changeInInventory'
 
 def sec():
     headers = {'User-Agent': "juancassinerio@gmail.com"}
