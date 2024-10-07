@@ -10,6 +10,8 @@ import plotly.io as pio
 from pathlib import Path
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
 pio.renderers.default = 'browser'
 
 #MODULES
@@ -44,46 +46,135 @@ def macrodata(start_date):
 
     return macros
 
-def results_plotter(ticker_data,results):
-    fig = px.line(ticker_data['price'], x='Date', y='Adj Close')  # Existing line
+def results_plotter(ticker_data,results,save_path):
 
     results['Date_t0']
-    results['TarjetPrice_t0']
-    results['TarjetPrice_t1']
     results['R2']
-    results['Fitting function']
-    results['Fitting params']
-    results['Projected Financial Statements']
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=ym, mode='markers', name='fitting'))
+    fig.add_trace(go.Scatter(x=ex['Date'], y=ex['gdp growth'], mode='markers', name='extrapolation data'))
+    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='present data'))
+    fig.update_layout(width=700, height=400)
+    fig.show()
 
-    # Extract necessary data from ticker_data['description']
-    ticker_info = ticker_data['description']
-    summary = ticker_info['Summary']  # Exclude the summary
-    link_yf = ticker_info['link_yf']
-    target_mean_price = ticker_info['targetMeanPrice']
-    target_high_price = ticker_info['targetHighPrice']
-    target_low_price = ticker_info['targetLowPrice']
+
+    # Create subplots with the specified height ratios
+    fig = make_subplots(rows=2, cols=2, row_heights=[5, 1], shared_xaxes=True, vertical_spacing=0.1)
+
+    # Example of adding data to the subplots
+    # Plot something in the first subplot
+    fig.add_trace(go.Trace(x=[1, 2, 3], y=[4, 5, 6], mode='lines', name='Line 1'), row=1, col=1)
+    fig.add_trace(go.Trace(x=[1, 2, 3], y=[4, 5, 6], mode='lines', name='Line 1'), row=1, col=1)
+
+
+    fig.add_trace(go.Scatter(
+        x=ticker_data['price']['Date'],
+        y=ticker_data['price']['Adj Close'],
+        mode='lines',
+        line=dict(color='blue', width=2),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=1, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=ticker_data['price']['Date'],
+        y=ticker_data['price']['Adj Close'],
+        mode='lines',
+        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=2, col=1)
+
+    #descrption
+    fig.add_trace(go.Scatter(
+        x=ticker_data['price']['Date'],
+        y=ticker_data['price']['Adj Close'],
+        mode='lines',
+        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=2, col=1)
+
+    #results
+    fig.add_trace(go.Scatter(
+        x=ticker_data['price']['Date'],
+        y=ticker_data['price']['Adj Close'],
+        mode='lines',
+        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=2, col=1)
+
+    fig.update_layout(height=600, width=800, title_text="Two Subplots with Plotly", showlegend=True)
 
     # Show the plot
     fig.show()
 
+
+    for i in range(0,len(results['TarjetPrice_scenarios'])):
+        results['TarjetPrice_scenarios']['Tarjet Price'].iloc[i]
+        results['TarjetPrice_scenarios']['scenario']
+
+
+
+
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 10), gridspec_kw={'height_ratios': [5, 1]})
+
+
+
+    ax1.text(0.5, 0.95,
+             f"Número de quiebres VaR = {len(breaks)} en {len(merged_df)} / {round(len(breaks) / len(merged_df) * 100, 2)}%",
+             horizontalalignment='center', transform=ax1.transAxes, fontsize=14)
+
+    ax1.legend()
+    ax1.legend(fontsize=12)
+    ax1.set_ylabel('USD')
+    ax1.tick_params(axis='x', rotation=45, which='both', bottom=False, labelbottom=False)
+    ax1.set_title(f"Agregacion: {report['SubAgg']}", fontsize=20, fontweight='bold')
+    ticker_data['description']['Company']
+    ticker_data['description']['industry']
+    ticker_data['description']['sector']
+    ticker_data['description']['country']
+    ticker_data['description']['Summary'].split('.')[1]
+    link_yf = ticker_info['link_yf']
+
+    target_mean_price = ticker_info['targetMeanPrice']
+    target_high_price = ticker_info['targetHighPrice']
+    target_low_price = ticker_info['targetLowPrice']
+
+    ax2.plot(results['Projected Financial Statements']['Date'],results['Projected Financial Statements']['Revenue Change']
+             ,color='black', linestyle='-', linewidth=1, zorder=2)
+    ax2.plot(results['Projected Financial Statements']['Date'], results['Projected Financial Statements']['Smoothed Revenue Change']
+             ,color = 'black', linestyle = '--', linewidth = 1, zorder = 2)
+    ax2.set_ylabel('Revenue Growth Rate', color='black')
+    ax2.set_xlabel('Date')
+
+    plt.tight_layout()
+    plt.savefig(folder_path / f'grafica {graphname}.png')
+
     return
+
+
+
+
+
 
 
 if __name__ == "__main__":
 
+    cwd = Path.cwd()
+
+
     ticker = 'AAPL'
     #for ticker in tickerlist(calculate return
 
-        # GET STOCK AND MACROECONOMICAL VARIABLES
-        ticker_data,start_date=tickerdata(ticker)
-        macros=macrodata(start_date)
+    # GET STOCK AND MACROECONOMICAL VARIABLES
+    ticker_data,start_date=tickerdata(ticker)
+    macros=macrodata(start_date)
 
-        # VALUATE STOCK
-        results=damodaran_2(ticker_data,macros)
+    # VALUATE STOCK
+    results=damodaran_2(ticker_data,macros,cwd)
 
-
-        # SHOW RESULTS
-        results_plotter(ticker_data,results)
+    results['']
+    # SHOW RESULTS
+    #results_plotter(ticker_data,results)
 
 
     '''

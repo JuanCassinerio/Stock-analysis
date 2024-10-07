@@ -111,9 +111,7 @@ def av_financials(ticker,key,headers):
         result_df['ticker'] = ticker
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date'})
 
-    results_dfc = result_df
-    result_df=results_dfc
-    #DATA PREPARATION
+
         #VARIABLES AND FORMAT
         result_df = result_df.rename(columns={'fiscalDateEnding': 'Date',
                                   'totalRevenue': 'Revenue',
@@ -155,8 +153,7 @@ def av_financials(ticker,key,headers):
                                'Shares','kd', 'tax','Operating Cash Flow']]
     return result_df
 
-''''operatingCashFlow'
-,'changeInReceivables','changeInInventory''''
+    # operatingCashFlow','changeInReceivables','changeInInventory'''
 
 def sec():
     headers = {'User-Agent': "juancassinerio@gmail.com"}

@@ -401,7 +401,7 @@ def damodaran_2(ticker_data,macros):
     # margin errors
 
 
-'''
+    '''
     # Today valuation
     fcfnext0 = data['Free Cash Flow'].iloc[-2] * (1 + g / 100)
     terminalvalue0 = fcfnext0 / ((wacc / 100) - (g / 100))
