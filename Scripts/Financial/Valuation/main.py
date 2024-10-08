@@ -37,12 +37,16 @@ def macrodata(start_date):
 
     SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
 
-    rates=fred()['rf'].mean()
-    ERP = dmd()[['Year', 'Implied ERP (FCFE)']]['Implied ERP (FCFE)'].mean()
-    g=gdpworld()
-    g,g_std=g['gdp growth'].iloc[-1],g['gdp growth'].std()
+    rates=fred()['rf'].tail(12*5).mean()
+    rf,rf_std=rates.mean(),rates.std()/2
 
-    macros = {'SPY':SPY,'Rf':rates,'ERP':ERP,'g':g,'g_std':g_std}
+    gdpworld_growth=gdpworld()
+    g,g_std=gdpworld_growth['gdp growth'].iloc[-1],gdpworld_growth['gdp growth'].std()/2
+
+    EquityRiskPremium = dmd()[['Year', 'Implied ERP (FCFE)']]['Implied ERP (FCFE)']
+    ERP,ERP_std=EquityRiskPremium.mean(),EquityRiskPremium.std()/2
+
+    macros = {'SPY':SPY,'rf':rf,'rf_std':rf_std,'g':g,'g_std':g_std,'ERP':ERP,'ERP_std':ERP_std}
 
     return macros
 
@@ -135,9 +139,9 @@ def results_plotter(ticker_data,results,save_path):
     ticker_data['description']['Summary'].split('.')[1]
     link_yf = ticker_info['link_yf']
 
-    target_mean_price = ticker_info['targetMeanPrice']
-    target_high_price = ticker_info['targetHighPrice']
-    target_low_price = ticker_info['targetLowPrice']
+    target_mean_price = ticker_data['description']['targetMeanPrice']
+    target_high_price = ticker_data['description']['targetHighPrice']
+    target_low_price = ticker_data['description']['targetLowPrice']
 
     ax2.plot(results['Projected Financial Statements']['Date'],results['Projected Financial Statements']['Revenue Change']
              ,color='black', linestyle='-', linewidth=1, zorder=2)
@@ -151,9 +155,12 @@ def results_plotter(ticker_data,results,save_path):
 
     return
 
-
-
-
+'''
+    if r2<60 discard result, or red alert and others 
+    ("low accuracy result"
+ 
+     "model prediction not converngent instead of results on reuslts box")
+'''
 
 
 
@@ -161,7 +168,7 @@ if __name__ == "__main__":
 
     cwd = Path.cwd()
 
-    ticker = 'NVDA' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
+    ticker = 'AAPL' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
     #for ticker in tickerlist(calculate return
 
     # GET STOCK AND MACROECONOMICAL VARIABLES

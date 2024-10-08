@@ -69,7 +69,7 @@ def av_financials(ticker,key,headers):
 
     '''
 
-    ticker='AAPL'
+    ticker='AMZN'
     key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
     '''
@@ -127,7 +127,9 @@ def av_financials(ticker,key,headers):
                                   'totalLiabilities': 'Liabilities',
                                   'longTermDebtNoncurrent': 'Long Term Debt',
                                   'commonStockSharesOutstanding': 'Shares',
-                                  'operatingCashflow': 'Operating Cash Flow'})
+                                  'operatingCashflow': 'Operating Cash Flow',
+                                    'totalNonCurrentLiabilities': 'Liabilities Non Current'
+                                            })
         result_df['Date'] = pd.to_datetime(result_df['Date'])
         for col in ['Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                     'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt', 'Shares',
@@ -146,13 +148,16 @@ def av_financials(ticker,key,headers):
         result_df['tax'] = result_df['tax'].fillna(method='ffill').fillna(method='bfill')  # fills nan with closest
 
         result_df['kd'] = result_df['kd'].fillna(method='ffill').fillna(method='bfill') #fills nan with closest
-        #problem with kd past values
+        #problem with kd past values for backtesting
 
         result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
-                               'Shares','kd', 'tax','Operating Cash Flow']]
+                               'Shares','kd', 'tax','Operating Cash Flow','Liabilities Non Current']]
     return result_df
 
+    # totalNonCurrentLiabilities
+    #
+    #
     # operatingCashFlow','changeInReceivables','changeInInventory'''
 
 def sec():

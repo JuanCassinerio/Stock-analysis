@@ -28,6 +28,10 @@ def aprox(value, target, tolerance):
 
 
 def beta_ke(stock,macros): #5 years monthly
+    # https://www.alphaspread.com/security/nasdaq/aapl/discount-rate
+    # https://site.financialmodelingprep.com/weighted-average-cost-of-capital/AAPL
+    # https://valueinvesting.io/AAPL/valuation/wacc
+
     spy=macros['SPY']
     stock['Month'] = stock['Date'].dt.month
     stock['Year'] = stock['Date'].dt.year
@@ -43,17 +47,15 @@ def beta_ke(stock,macros): #5 years monthly
     df['Date'] = pd.to_datetime(df['Date'])
     df['Month'] = df['Date'].dt.month
     df['Year'] = df['Date'].dt.year
-    window = 60  # 5 x 12
+    window = 5 * 12
     df['cov'] = df['SPY'].rolling(window=window).cov(df['price_change'])
     df['var'] = df['SPY'].rolling(window=window).var()
     df['beta'] = df['cov'] / df['var']
     df=df[['Date','price','beta']]
     beta = df['beta'].iloc[-1]
     ke=macros['Rf']+beta*macros['ERP']
+    2 + beta * 4
     return beta,ke
-
-
-
 
 def damodaran_1(ticker_data):  # yahooinput
     ticker = 'APPL'
@@ -190,9 +192,16 @@ def damodaran_2(ticker_data,macros):
     data['Year'] = data['Date'].dt.year
     data = data.sort_values(by='Date Unix', ascending=True)
     data = data.dropna(subset=['Revenue'])
-    data['Revenue Change'] = data['Revenue'].pct_change(periods=1)
+    data = data[data['Revenue'] >= 0] #Deal with negative revenues that crash revenue change
+    data['Revenue Change'] = data['Revenue'].pct_change(periods=4)
     data = data.dropna(subset=['Revenue Change'])
 
+    ############################## 2 - Vertical Analysis to Revenue ##############################
+    variables = ['Net Income', 'Depreciation', 'Capex', 'PPE', 'Assets Current', 'Liabilities Current',
+                 'Long Term Debt', 'Cash', 'Operating Cash Flow']
+    verticalratio = {
+        variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean()
+        for variable in variables}
 
     ############################## 2 - RETURN FITTING ##############################
     scaler_x = MinMaxScaler()
@@ -219,64 +228,80 @@ def damodaran_2(ticker_data,macros):
             
     '''
 
-    g = (1+macros['g']/100)**(1/4)-1 #quaterly
-    data['Smoothed Revenue Change'] = data['Revenue Change'].ewm(span=4, adjust=False).mean()
-    b = data['Smoothed Revenue Change'].iloc[0]-g
-    g_d = macros['g_std']
+    data['Smoothed Revenue Change'] = data['Revenue Change'].ewm(span=8, adjust=False).mean()
 
-    best_function='salesprojection_exfall_rise'
-
-    def salesprojection_exfall_rise(t, g, b, c):     #scales strats with ti=0
-        return g + b * np.exp(-c * (t))
-
-    def best_function_fixed(t, c): #long term g fixing
-        return salesprojection_exfall_rise(t, g, b, c)
-
-
-    best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
-    c_d=np.sqrt(np.diag(covariance)) #slope margin
-    y_pred = best_function_fixed(date_scaled, *best_fit_params)
-    max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
-    print(max_r2,"%")
-
-    '''
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(x=date_scaled, y=data['Smoothed Revenue Change'] ))
-    fig.add_trace(go.Scatter(x=date_scaled, y=data['Revenue Change']))
-    fig.add_trace(go.Scatter(x=date_scaled, y=y_pred,
-                             line=dict(dash='dash')))  # Set line dash style to 'dash'
-    fig.show()
-    '''
-
-    ############################## 3 - Vertical Analysis to Revenue ##############################
-    variables = ['Net Income', 'Depreciation', 'Capex','PPE', 'Assets Current','Liabilities Current', 'Long Term Debt','Cash','Operating Cash Flow']
-    verticalratio = {variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean() for variable in variables}
-
-    ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
-    # wacc constant
-    data = data.sort_values(by='Date', ascending=True)
-    beta,ke=beta_ke(ticker_data['price'], macros)
-    shares = data['Shares'].iloc[-1]
-    Marketcap=ticker_data['price']['Adj Close'].iloc[0]*shares
-    EA_ratio=Marketcap/(data['Long Term Debt'].iloc[-1]+Marketcap)
-    wacc=ke*EA_ratio+data['kd'].iloc[-1]*100*(1-data['tax'].iloc[-1])*(1-EA_ratio)
-
-    # other variables
-    Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    #Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
-    Net_Debt = data['Long Term Debt'].iloc[-1]
+    g = (1 + macros['g'] / 100) ** (1 / 4) - 1  # quaterly
+    g_d = (1 + macros['g_std'] / 100) ** (1 / 4) - 1
 
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
     data['generated'] = 0
-    scenarios = { 'optimistic': best_fit_params - c_d,'normal': best_fit_params,'pessimistic': best_fit_params + c_d}
+    scenarios = {'optimistic': (best_fit_params - c_d,g+g_d,rf+rf_std), 'normal': best_fit_params, 'pessimistic': best_fit_params + c_d}
 
     scenarios_df = pd.DataFrame()
 
-
-
-
     for scenario_name, c_value in scenarios.items():
+
+    scenarios = {
+        'optimistic': (best_fit_params - c_d, g + g_d, rf - rf_std),
+        'normal': (best_fit_params, g, rf),
+        'pessimistic': (best_fit_params + c_d, g - g_d, rf + rf_std)
+    }
+
+    # Create an empty DataFrame to store scenario results
+    scenarios_df = pd.DataFrame()
+
+    # Iterate over the scenarios
+    for scenario_name, (c_value, growth_rate, risk_free_rate) in scenarios.items():
+        # Create a temporary DataFrame for each scenario
+        scenario_data = pd.DataFrame({
+            'Scenario': [scenario_name],
+            'C_Value': [c_value],
+            'Growth_Rate': [growth_rate],
+            'Risk_Free_Rate': [risk_free_rate]
+        })
+
+        b = data['Smoothed Revenue Change'].iloc[0]-g
+
+        best_function='salesprojection_exfall_rise'
+
+        def salesprojection_exfall_rise(t, g, b, c):     #scales strats with ti=0
+            return g + b * np.exp(-c * (t))
+
+        def best_function_fixed(t, c): #long term g fixing
+            return salesprojection_exfall_rise(t, g, b, c)
+
+
+        best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
+        c_d=np.sqrt(np.diag(covariance)) #slope margin
+        y_pred = best_function_fixed(date_scaled, *best_fit_params)
+        max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
+        print(max_r2,"%")
+
+        '''
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=date_scaled, y=data['Smoothed Revenue Change'], name='Smoothed Revenue Change' ))
+        fig.add_trace(go.Scatter(x=date_scaled, y=data['Revenue Change'], name='Revenue Change' ))
+        fig.add_trace(go.Scatter(x=date_scaled, y=y_pred,line=dict(dash='dash'), name='Revenue Trend' ))  # Set line dash style to 'dash'
+        fig.show()
+        '''
+
+
+        ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
+        # wacc constant
+        data = data.sort_values(by='Date', ascending=True)
+        beta,ke=beta_ke(ticker_data['price'], macros)
+        shares = data['Shares'].iloc[-1]
+        Marketcap=ticker_data['price']['Adj Close'].iloc[0]*shares
+        EA_ratio=Marketcap/(data['Long Term Debt'].iloc[-1]+Marketcap)
+        wacc=ke*EA_ratio+data['kd'].iloc[-1]*100*(1-data['tax'].iloc[-1])*(1-EA_ratio)
+
+        # other variables
+        Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
+        #Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
+        Net_Debt = data['Long Term Debt'].iloc[-1]
+
+
+
 
         data_copy=data.copy()
 
@@ -314,6 +339,7 @@ def damodaran_2(ticker_data,macros):
             future_dates_Unix.append(future_date_Unix)
             revenues.append(revenue)
 
+
             # Check if the revenue change approximation is close enough to stop
             if aprox(revenue_change, g, g_d):
                 break
@@ -345,6 +371,9 @@ def damodaran_2(ticker_data,macros):
         #NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
         data_copy['Free Cash Flow'] = Operatingcashflow - Capex #- NWCCh
 
+        #g = (1 + 2.9 / 100) ** (1 / 4) - 1  # quaterly
+
+        #wacc=6.5
         fcfnext = data_copy['Free Cash Flow'].iloc[-1] * (1 + g)
         terminalvalue = fcfnext *(1+(((1 + wacc / 100) ** (1 / 4) - 1)))/ ((((1 + wacc / 100) ** (1 / 4) - 1)) - g)
         Subtotal = data_copy['Free Cash Flow'].tolist()
@@ -356,17 +385,18 @@ def damodaran_2(ticker_data,macros):
             npv = 0
             for t, cash_flow in enumerate(cash_flows):
                 t += 1
-                print(cash_flow)
                 npv += cash_flow / (1 + (((1 + wacc / 100) ** (1 / 4) - 1))) ** t # Q 1/4 quaterly correction
             return npv
 
         VA_Asset = npv(Subtotal[-(len(new_df) + 1):], wacc)
-        VA_Equity = VA_Asset - Net_Debt
+        #Net_Debt=totalNonCurrentLiabilities- Cash and ST Investments
+        VA_Equity = VA_Asset - 133280000000 +61801000000
         TarjetPrice_mean = VA_Equity / shares
 
-        results={'scenario':scenario_name,'Tarjet Price':TarjetPrice_mean,'fcflast':fcfnext,'perp':terminalvalue}
+        results={'scenario':scenario_name,'Tarjet Price':TarjetPrice_mean}
         scenarios_df = pd.concat([scenarios_df, pd.DataFrame([results])], ignore_index=True)
 
+    print(scenarios_df)
     '''
     
     #https://valueinvesting.io/AAPL/valuation/wacc

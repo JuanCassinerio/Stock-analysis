@@ -177,7 +177,6 @@ def fred():
 
 def gdpworld():
 
-
     file_path0 = 'C:/Users/Usuario/Desktop/Scripts/Base de datos/gdp growth.csv'
 
     url = "https://api.worldbank.org/v2/en/indicator/NY.GDP.MKTP.KD.ZG?downloadformat=csv"
