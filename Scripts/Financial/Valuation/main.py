@@ -161,8 +161,7 @@ if __name__ == "__main__":
 
     cwd = Path.cwd()
 
-
-    ticker = 'AAPL'
+    ticker = 'NVDA' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
     #for ticker in tickerlist(calculate return
 
     # GET STOCK AND MACROECONOMICAL VARIABLES
@@ -172,7 +171,6 @@ if __name__ == "__main__":
     # VALUATE STOCK
     results=damodaran_2(ticker_data,macros,cwd)
 
-    results['']
     # SHOW RESULTS
     #results_plotter(ticker_data,results)
 

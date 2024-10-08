@@ -23,13 +23,6 @@ def salesprojection_logex_fast_long(t, g, rev_0, a, b, c):
 def salesprojection_exfall_rise(t,g, a, b):
     return g + np.exp(-a * (t - b))
 
-
-def npv_function(cash_flows, wacc, g):
-    npv = 0
-    for t, cash_flow in enumerate(cash_flows):
-        npv += cash_flow / (1 + (wacc/100)) ** t
-    return npv
-
 def aprox(value, target, tolerance):
     return (target - tolerance) <= value <= (target + tolerance)
 
@@ -57,8 +50,6 @@ def beta_ke(stock,macros): #5 years monthly
     df=df[['Date','price','beta']]
     beta = df['beta'].iloc[-1]
     ke=macros['Rf']+beta*macros['ERP']
-
-
     return beta,ke
 
 
@@ -355,17 +346,18 @@ def damodaran_2(ticker_data,macros):
         data_copy['Free Cash Flow'] = Operatingcashflow - Capex #- NWCCh
 
         fcfnext = data_copy['Free Cash Flow'].iloc[-1] * (1 + g)
-        terminalvalue = fcfnext / ((((1 + wacc / 100) ** (1 / 4) - 1)) - g)
+        terminalvalue = fcfnext *(1+(((1 + wacc / 100) ** (1 / 4) - 1)))/ ((((1 + wacc / 100) ** (1 / 4) - 1)) - g)
         Subtotal = data_copy['Free Cash Flow'].tolist()
 
         Subtotal.append(terminalvalue)
 
         def npv(cash_flows, wacc):
+            cash_flows=Subtotal[-(len(new_df) + 1):]
             npv = 0
             for t, cash_flow in enumerate(cash_flows):
                 t += 1
-                npv += cash_flow / (1 + (((1 + wacc / 100) ** (1 / 4) - 1))) ** (
-                            t * (1 / 4))  # Q 1/4 quaterly correction
+                print(cash_flow)
+                npv += cash_flow / (1 + (((1 + wacc / 100) ** (1 / 4) - 1))) ** t # Q 1/4 quaterly correction
             return npv
 
         VA_Asset = npv(Subtotal[-(len(new_df) + 1):], wacc)
