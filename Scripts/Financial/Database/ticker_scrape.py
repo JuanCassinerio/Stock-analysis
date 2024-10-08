@@ -6,7 +6,8 @@ import requests
 ######################### COMPANY DATA SCRAPING
 ######################### DATA SCRAPING
 
-ticker='AAPL'
+#https://stockanalysis.com/stocks/aapl/forecast/
+
 def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
     data_ticker = yf.Ticker(ticker)
     cf = data_ticker.cashflow.T.rename_axis('Date').reset_index()
@@ -16,8 +17,6 @@ def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
     bs = bs.drop(columns='Date')
     data = pd.concat([cf, it, bs], axis=1)
     return data
-fin=financialdata(ticker)
-
 
 def price(ticker,start_date,end_date): #STOCKS PRICES (DIVIDEND ACCOUNTED)
     price = yf.download(ticker, start=start_date, end=end_date)['Adj Close']
@@ -128,12 +127,13 @@ def av_financials(ticker,key,headers):
                                   'longTermDebtNoncurrent': 'Long Term Debt',
                                   'commonStockSharesOutstanding': 'Shares',
                                   'operatingCashflow': 'Operating Cash Flow',
-                                    'totalNonCurrentLiabilities': 'Liabilities Non Current'
+                                  'totalNonCurrentLiabilities': 'Liabilities Non Current'
                                             })
         result_df['Date'] = pd.to_datetime(result_df['Date'])
         for col in ['Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                     'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt', 'Shares',
-                    'incomeTaxExpense','incomeBeforeTax','interestExpense','totalNonCurrentLiabilities','Operating Cash Flow']:
+                    'incomeTaxExpense','incomeBeforeTax','interestExpense',
+                    'Operating Cash Flow','Liabilities Non Current']:
             result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
 
         #tax
@@ -155,9 +155,6 @@ def av_financials(ticker,key,headers):
                                'Shares','kd', 'tax','Operating Cash Flow','Liabilities Non Current']]
     return result_df
 
-    # totalNonCurrentLiabilities
-    #
-    #
     # operatingCashFlow','changeInReceivables','changeInInventory'''
 
 def sec():

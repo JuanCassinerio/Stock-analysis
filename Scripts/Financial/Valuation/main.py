@@ -37,7 +37,7 @@ def macrodata(start_date):
 
     SPY = price('SPY',start_date - pd.DateOffset(years=6), date.today())
 
-    rates=fred()['rf'].tail(12*5).mean()
+    rates=fred()['rf'].tail(12*5)
     rf,rf_std=rates.mean(),rates.std()/2
 
     gdpworld_growth=gdpworld()
@@ -50,51 +50,16 @@ def macrodata(start_date):
 
     return macros
 
-def results_plotter(ticker_data,results,save_path):
+def results_plotter(ticker_data,results):
 
-    results['Date_t0']
-    results['R2']
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=ym, mode='markers', name='fitting'))
-    fig.add_trace(go.Scatter(x=ex['Date'], y=ex['gdp growth'], mode='markers', name='extrapolation data'))
-    fig.add_trace(go.Scatter(x=x, y=y, mode='markers', name='present data'))
-    fig.update_layout(width=700, height=400)
-    fig.show()
 
+    # Filter the data for the last two years
+    ticker_data['price'] = ticker_data['price'][
+        ticker_data['price']['Date'] >= ticker_data['price']['Date'].max() - pd.DateOffset(years=2)]
 
     # Create subplots with the specified height ratios
-    fig = make_subplots(rows=2, cols=2, row_heights=[5, 1], shared_xaxes=True, vertical_spacing=0.1)
+    fig = make_subplots(rows=2, cols=2, row_heights=[5, 1],column_widths=[5, 2], shared_xaxes=True, vertical_spacing=0.1)
 
-    # Example of adding data to the subplots
-    # Plot something in the first subplot
-    fig.add_trace(go.Trace(x=[1, 2, 3], y=[4, 5, 6], mode='lines', name='Line 1'), row=1, col=1)
-    fig.add_trace(go.Trace(x=[1, 2, 3], y=[4, 5, 6], mode='lines', name='Line 1'), row=1, col=1)
-
-
-    fig.add_trace(go.Scatter(
-        x=ticker_data['price']['Date'],
-        y=ticker_data['price']['Adj Close'],
-        mode='lines',
-        line=dict(color='blue', width=2),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=1, col=1)
-
-    fig.add_trace(go.Scatter(
-        x=ticker_data['price']['Date'],
-        y=ticker_data['price']['Adj Close'],
-        mode='lines',
-        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=2, col=1)
-
-    #descrption
-    fig.add_trace(go.Scatter(
-        x=ticker_data['price']['Date'],
-        y=ticker_data['price']['Adj Close'],
-        mode='lines',
-        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=2, col=1)
 
     #results
     fig.add_trace(go.Scatter(
@@ -103,35 +68,132 @@ def results_plotter(ticker_data,results,save_path):
         mode='lines',
         line=dict(color='blue', width=2, dash='dash'),  # Line color and width
         name='Historic Stock Price'  # Label for the trace
+    ), row=1, col=1)
+
+    for i in range(len(results['TarjetPrice_scenarios'])):
+        scenario_name = results['TarjetPrice_scenarios']['scenario'].iloc[i]  # Get the scenario name
+        target_price = results['TarjetPrice_scenarios']['Tarjet Price'].iloc[i]  # Get the target price
+
+        # Add a scatter plot for each scenario with dots
+        fig.add_trace(go.Scatter(
+            x=[results['Date_t0']],  # Assuming 'Date_t0' is a single date or array with matching size
+            y=[target_price],
+            mode='markers',  # Show as dots
+            marker=dict(size=10),  # Marker size
+            name=scenario_name  # Scenario name for each trace
+        ), row=1, col=1)
+
+    fig.add_trace(go.Scatter(
+        x=results['Projected Financial Statements']['Date'],
+        y=results['Projected Financial Statements']['Revenue Change'],
+        mode='lines',
+        line=dict(color='black', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=results['Projected Financial Statements']['Date'],
+        y=results['Projected Financial Statements']['Smoothed Revenue Change'],
+        mode='lines',
+        line=dict(color='dark grey', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
     ), row=2, col=1)
 
-    fig.update_layout(height=600, width=800, title_text="Two Subplots with Plotly", showlegend=True)
+    company_name = ticker_data['description']['Company']
+    industry = ticker_data['description']['industry']
+    sector = ticker_data['description']['sector']
+    country = ticker_data['description']['country']
+    summary = ticker_data['description']['Summary'].split('.')[1]
+    link_yf = ticker_data['description']['link_yf']
 
-    # Show the plot
+    def split_text(text, max_length):
+        words = text.split(' ')
+        lines = []
+        current_line = []
+
+        for word in words:
+            if sum(len(w) for w in current_line) + len(word) + len(current_line) - 1 <= max_length:
+                current_line.append(word)
+            else:
+                lines.append(' '.join(current_line))
+                current_line = [word]
+        lines.append(' '.join(current_line))  # Add the last line
+
+        return '<br>'.join(lines)
+
+    # Split the summary into multiple lines (e.g., 80 characters max per line)
+    formatted_summary = split_text(summary, 60)
+
+    text_parts = [
+        f"<b>Company:</b> {company_name}<br>",
+        f"<b>Industry:</b> {industry}<br>",
+        f"<b>Sector:</b> {sector}<br>",
+        f"<b>Country:</b> {country}<br>",
+        f"<b>Summary:</b> {formatted_summary}<br>",  # Use the formatted summary with line breaks
+        f"<a href='{link_yf}'>Yahoo Finance</a>"
+    ]
+
+    # Define text sizes and colors
+    text_sizes = [40, 12, 12, 12, 12, 10]
+    text_colors = ["black", "gray", "gray", "gray", "gray", "blue"]
+
+    # Create annotations with defined sizes and colors
+    annotations_12 = []
+    for i in range(len(text_parts)):
+        annotations_12.append(
+            dict(
+                text=text_parts[i],
+                x=1,  # Position at the right edge (relative to subplot width)
+                y=1 - i * 150,  # Adjust vertical spacing as needed
+                showarrow=False,
+                font=dict(size=text_sizes[i], color=text_colors[i]),
+                xref="x2",  # Reference x-axis 2
+                yref="y1"  # Reference y-axis 1
+            )
+        )
+
+
+
+    annotations_22 = []
+    for i in range(len(text_parts)):
+        annotations_22.append(
+            dict(
+                text=text_parts[i],
+                x=1,  # Position at the right edge (relative to subplot width)
+                y=1 - i * 10,  # Adjust vertical spacing as needed
+                showarrow=False,
+                font=dict(size=text_sizes[i], color=text_colors[i]),
+                xref="x2",  # Reference x-axis 2
+                yref="y2"  # Reference y-axis 1
+            )
+        )
+
+    all_annotations = annotations_12 + annotations_22  # Combine both lists of annotations
+
+    # Update layout to include the text in subplot (row 1, col 2)
+    fig.update_layout(
+        xaxis2_anchor="x1",  # Anchor x-axis 2 to x-axis 1 for alignment
+        yaxis1_anchor="y2",  # Anchor y-axis 1 to y-axis 2 for alignment
+        annotations=all_annotations
+    )
+
+    # Show the figure
     fig.show()
 
-
-    for i in range(0,len(results['TarjetPrice_scenarios'])):
-        results['TarjetPrice_scenarios']['Tarjet Price'].iloc[i]
-        results['TarjetPrice_scenarios']['scenario']
-
-
-
-
-
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 10), gridspec_kw={'height_ratios': [5, 1]})
-
+    results['R2']
 
 
     ax1.text(0.5, 0.95,
              f"Número de quiebres VaR = {len(breaks)} en {len(merged_df)} / {round(len(breaks) / len(merged_df) * 100, 2)}%",
              horizontalalignment='center', transform=ax1.transAxes, fontsize=14)
 
-    ax1.legend()
-    ax1.legend(fontsize=12)
-    ax1.set_ylabel('USD')
-    ax1.tick_params(axis='x', rotation=45, which='both', bottom=False, labelbottom=False)
-    ax1.set_title(f"Agregacion: {report['SubAgg']}", fontsize=20, fontweight='bold')
+    fig.add_trace(go.Scatter(
+        x=results['Projected Financial Statements']['Date'],
+        y=results['Projected Financial Statements']['Smoothed Revenue Change'],
+        mode='lines',
+        line=dict(color='dark grey', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'  # Label for the trace
+    ), row=2, col=1)
+
     ticker_data['description']['Company']
     ticker_data['description']['industry']
     ticker_data['description']['sector']
@@ -143,15 +205,13 @@ def results_plotter(ticker_data,results,save_path):
     target_high_price = ticker_data['description']['targetHighPrice']
     target_low_price = ticker_data['description']['targetLowPrice']
 
-    ax2.plot(results['Projected Financial Statements']['Date'],results['Projected Financial Statements']['Revenue Change']
-             ,color='black', linestyle='-', linewidth=1, zorder=2)
-    ax2.plot(results['Projected Financial Statements']['Date'], results['Projected Financial Statements']['Smoothed Revenue Change']
-             ,color = 'black', linestyle = '--', linewidth = 1, zorder = 2)
-    ax2.set_ylabel('Revenue Growth Rate', color='black')
-    ax2.set_xlabel('Date')
 
-    plt.tight_layout()
+    # Show the plot
+    fig.show()
+
     plt.savefig(folder_path / f'grafica {graphname}.png')
+
+
 
     return
 

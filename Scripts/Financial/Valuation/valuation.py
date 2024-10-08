@@ -20,14 +20,17 @@ def salesprojection_logex_fast_short(t, g, rev_0, a, b, c):
 def salesprojection_logex_fast_long(t, g, rev_0, a, b, c):
     return g + a / (1 + np.exp(-b * (t - c)))*(1-a / (1 + np.exp(-b * (t - c))))
 
-def salesprojection_exfall_rise(t,g, a, b):
+def salesprojection_exfall_rise_other(t,g, a, b):
     return g + np.exp(-a * (t - b))
+
+def salesprojection_exfall_rise(t, g, b, c):     #scales strats with ti=0
+    return g + b * np.exp(-c * (t))
 
 def aprox(value, target, tolerance):
     return (target - tolerance) <= value <= (target + tolerance)
 
 
-def beta_ke(stock,macros): #5 years monthly
+def cost_of_equity(stock,macros,rf,ERP): #5 years monthly
     # https://www.alphaspread.com/security/nasdaq/aapl/discount-rate
     # https://site.financialmodelingprep.com/weighted-average-cost-of-capital/AAPL
     # https://valueinvesting.io/AAPL/valuation/wacc
@@ -51,11 +54,10 @@ def beta_ke(stock,macros): #5 years monthly
     df['cov'] = df['SPY'].rolling(window=window).cov(df['price_change'])
     df['var'] = df['SPY'].rolling(window=window).var()
     df['beta'] = df['cov'] / df['var']
-    df=df[['Date','price','beta']]
+    df = df[['Date','price','beta']]
     beta = df['beta'].iloc[-1]
-    ke=macros['Rf']+beta*macros['ERP']
-    2 + beta * 4
-    return beta,ke
+    ke = rf+beta*ERP
+    return ke
 
 def damodaran_1(ticker_data):  # yahooinput
     ticker = 'APPL'
@@ -180,9 +182,7 @@ def damodaran_1(ticker_data):  # yahooinput
 
 def damodaran_2(ticker_data,macros):
     ############################## 1 - DATA PREPARATION ##############################
-    '''data =result_df
-    ticker_data,macros
-    '''
+    #data =result_df
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
 
@@ -203,7 +203,7 @@ def damodaran_2(ticker_data,macros):
         variable: pd.DataFrame({variable: data[variable] / data['Revenue'] for variable in variables})[variable].mean()
         for variable in variables}
 
-    ############################## 2 - RETURN FITTING ##############################
+    ############################## 3 - REVENUE FITTING ##############################
     scaler_x = MinMaxScaler()
     scaler_y = MinMaxScaler()
     date_scaled = scaler_x.fit_transform(data['Date Unix'].values.reshape(-1, 1)).flatten()
@@ -233,86 +233,75 @@ def damodaran_2(ticker_data,macros):
     g = (1 + macros['g'] / 100) ** (1 / 4) - 1  # quaterly
     g_d = (1 + macros['g_std'] / 100) ** (1 / 4) - 1
 
+    b = data['Smoothed Revenue Change'].iloc[0]-g
+
+    def best_function_fixed(t, c): #long term g fixing
+        return salesprojection_exfall_rise(t, g, b, c)
+
+
+    best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
+    c_d=np.sqrt(np.diag(covariance)) #slope margin
+    y_pred = best_function_fixed(date_scaled, *best_fit_params)
+    max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
+    print(max_r2,"%")
+
+    '''
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=date_scaled, y=data['Smoothed Revenue Change'], name='Smoothed Revenue Change' ))
+    fig.add_trace(go.Scatter(x=date_scaled, y=data['Revenue Change'], name='Revenue Change' ))
+    fig.add_trace(go.Scatter(x=date_scaled, y=y_pred,line=dict(dash='dash'), name='Revenue Trend' ))  # Set line dash style to 'dash'
+    fig.show()
+    '''
+
+
+    ############################## 4 - VARIABLES Calculation ##############################¿
+
+    data = data.sort_values(by='Date', ascending=True)
+    shares = data['Shares'].iloc[-1]
+    Marketcap = ticker_data['price']['Adj Close'].iloc[0] * shares
+    EA_ratio = Marketcap / (data['Long Term Debt'].iloc[-1] + Marketcap)
+
+    Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
+    Net_Debt = (data['Liabilities Non Current'] - data['Cash and ST Investments']).iloc[-1]
+
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
+
     data['generated'] = 0
-    scenarios = {'optimistic': (best_fit_params - c_d,g+g_d,rf+rf_std), 'normal': best_fit_params, 'pessimistic': best_fit_params + c_d}
 
-    scenarios_df = pd.DataFrame()
-
-    for scenario_name, c_value in scenarios.items():
+    rf,rf_std=macros['rf'],macros['rf_std']
+    ERP,ERP_std=macros['ERP'],macros['ERP_std']
 
     scenarios = {
-        'optimistic': (best_fit_params - c_d, g + g_d, rf - rf_std),
-        'normal': (best_fit_params, g, rf),
-        'pessimistic': (best_fit_params + c_d, g - g_d, rf + rf_std)
+    'optimistic': (best_fit_params - c_d, g + g_d, rf - rf_std,ERP-ERP_std),
+    'normal': (best_fit_params, g, rf,ERP),
+    'pessimistic': (best_fit_params + c_d, g - g_d, rf + rf_std,ERP+ERP_std)
     }
 
-    # Create an empty DataFrame to store scenario results
+
     scenarios_df = pd.DataFrame()
-
-    # Iterate over the scenarios
-    for scenario_name, (c_value, growth_rate, risk_free_rate) in scenarios.items():
-        # Create a temporary DataFrame for each scenario
-        scenario_data = pd.DataFrame({
-            'Scenario': [scenario_name],
-            'C_Value': [c_value],
-            'Growth_Rate': [growth_rate],
-            'Risk_Free_Rate': [risk_free_rate]
-        })
-
-        b = data['Smoothed Revenue Change'].iloc[0]-g
-
-        best_function='salesprojection_exfall_rise'
-
-        def salesprojection_exfall_rise(t, g, b, c):     #scales strats with ti=0
-            return g + b * np.exp(-c * (t))
-
-        def best_function_fixed(t, c): #long term g fixing
-            return salesprojection_exfall_rise(t, g, b, c)
-
-
-        best_fit_params, covariance = curve_fit(best_function_fixed, date_scaled, data['Smoothed Revenue Change'],maxfev=100000)
-        c_d=np.sqrt(np.diag(covariance)) #slope margin
-        y_pred = best_function_fixed(date_scaled, *best_fit_params)
-        max_r2 = r2_score(data['Smoothed Revenue Change'], y_pred) * 100
-        print(max_r2,"%")
-
-        '''
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=date_scaled, y=data['Smoothed Revenue Change'], name='Smoothed Revenue Change' ))
-        fig.add_trace(go.Scatter(x=date_scaled, y=data['Revenue Change'], name='Revenue Change' ))
-        fig.add_trace(go.Scatter(x=date_scaled, y=y_pred,line=dict(dash='dash'), name='Revenue Trend' ))  # Set line dash style to 'dash'
-        fig.show()
-        '''
-
-
-        ############################## 4 - WACC AND OTHER VARIABLES ##############################¿
-        # wacc constant
-        data = data.sort_values(by='Date', ascending=True)
-        beta,ke=beta_ke(ticker_data['price'], macros)
-        shares = data['Shares'].iloc[-1]
-        Marketcap=ticker_data['price']['Adj Close'].iloc[0]*shares
-        EA_ratio=Marketcap/(data['Long Term Debt'].iloc[-1]+Marketcap)
-        wacc=ke*EA_ratio+data['kd'].iloc[-1]*100*(1-data['tax'].iloc[-1])*(1-EA_ratio)
-
-        # other variables
-        Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-        #Net_Debt = (data['Liabilities Current'] + data['Long Term Debt'] - data['Cash']).iloc[-1]
-        Net_Debt = data['Long Term Debt'].iloc[-1]
-
-
-
-
-        data_copy=data.copy()
-
-        data_copy['generated'] = 0  # Reset generated values for each scenario
-        data_copy['scenario'] = scenario_name  # Set the current scenario
-        best_fit_params = c_value
+    
+    for scenario_name, (c_value, growth_rate, risk_free_rate,ERP) in scenarios.items():
+        scenario_data = pd.DataFrame({'Scenario': [scenario_name],'c': [c_value],'g': [growth_rate],'rf': [risk_free_rate],'ERP': [ERP]})
 
         Date_last = data['Date'].iloc[-1]
         future_date = Date_last
         revenue_last = data['Revenue'].iloc[-1]
         revenue = revenue_last
+
+        scenario_name=scenario_data['Scenario'][0]
+        g=scenario_data['g'][0]
+        b=data['Smoothed Revenue Change'].iloc[0]-g
+        c=scenario_data['c'][0][0]
+        rf=scenario_data['rf']
+        ERP=scenario_data['ERP']
+
+        def best_function_fixed(t, c): #long term g fixing
+            return salesprojection_exfall_rise(t, g, b, c)
+
+        data_copy = data.copy()
+
+        ke=cost_of_equity(ticker_data['price'],macros,rf,ERP)
+        wacc=ke*EA_ratio+data_copy['kd'].iloc[-1]*100*(1-data_copy['tax'].iloc[-1])*(1-EA_ratio)
 
         revenues=[]
         future_dates=[]
@@ -324,7 +313,7 @@ def damodaran_2(ticker_data,macros):
                 break  # Replace `exit()` with `break` to avoid terminating the whole program
 
             # Calculate the next future date
-            future_date +=  pd.DateOffset(months=4)  # Increment date by one year 1 Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            future_date += pd.DateOffset(months=4)  # Increment date by one year 1 Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             future_date_Unix = int(future_date.timestamp())
             future_date_Unix_scaled = scaler_x.transform(np.array([[future_date_Unix]]))[0][0]
 
@@ -341,6 +330,7 @@ def damodaran_2(ticker_data,macros):
 
 
             # Check if the revenue change approximation is close enough to stop
+
             if aprox(revenue_change, g, g_d):
                 break
 
@@ -371,13 +361,9 @@ def damodaran_2(ticker_data,macros):
         #NWCCh = (data['Assets Current'] - data['Liabilities Current'] - data['Cash']) - (data['Assets Current'] - data['Liabilities Current'] - data['Cash']).shift(1)
         data_copy['Free Cash Flow'] = Operatingcashflow - Capex #- NWCCh
 
-        #g = (1 + 2.9 / 100) ** (1 / 4) - 1  # quaterly
-
-        #wacc=6.5
         fcfnext = data_copy['Free Cash Flow'].iloc[-1] * (1 + g)
         terminalvalue = fcfnext *(1+(((1 + wacc / 100) ** (1 / 4) - 1)))/ ((((1 + wacc / 100) ** (1 / 4) - 1)) - g)
         Subtotal = data_copy['Free Cash Flow'].tolist()
-
         Subtotal.append(terminalvalue)
 
         def npv(cash_flows, wacc):
@@ -389,14 +375,15 @@ def damodaran_2(ticker_data,macros):
             return npv
 
         VA_Asset = npv(Subtotal[-(len(new_df) + 1):], wacc)
-        #Net_Debt=totalNonCurrentLiabilities- Cash and ST Investments
-        VA_Equity = VA_Asset - 133280000000 +61801000000
+        VA_Equity = VA_Asset[0] - Net_Debt
         TarjetPrice_mean = VA_Equity / shares
 
         results={'scenario':scenario_name,'Tarjet Price':TarjetPrice_mean}
         scenarios_df = pd.concat([scenarios_df, pd.DataFrame([results])], ignore_index=True)
 
-    print(scenarios_df)
+
+    results = {'Date_t0': Date_last, 'TarjetPrice_scenarios': scenarios_df, 'R2': max_r2,
+               'Projected Financial Statements': data}
     '''
     
     #https://valueinvesting.io/AAPL/valuation/wacc
@@ -446,11 +433,6 @@ def damodaran_2(ticker_data,macros):
     TarjetPrice_1yplus = VA_Equity / shares'''
 
     #results= {'Date_t0':Date_last,'TarjetPrice_t0':TarjetPrice_0today, 'TarjetPrice_t1':TarjetPrice_1yplus,'R2':max_r2,'Fitting function':best_function,'Fitting params':best_fit_params,'Projected Financial Statements':data}
-
-    results = {'Date_t0': Date_last, 'TarjetPrice_scenarios': scenarios_df,'R2': max_r2,
-               'Fitting function': best_function, 'Fitting params': best_fit_params,
-               'Projected Financial Statements': data}
-
 
     return results
 
