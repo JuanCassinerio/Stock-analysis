@@ -161,6 +161,7 @@ def results_plotter(ticker_data,results):
     tp_m=(results['TarjetPrice_scenarios']['Tarjet Price'].iloc[1]-results['TarjetPrice_scenarios']['Tarjet Price'].iloc[1])/2
     p_v = ticker_data['price']['Adj Close'].iloc[(ticker_data['price']['Date'] - results['Date_t0']).abs().idxmin()]
 
+    action=0
     if tp - tp_m > p_v:
         action = 'Strong Buy'
     elif tp > p_v:
@@ -240,7 +241,7 @@ def results_plotter(ticker_data,results):
         xaxis2=dict(  # Adjust xaxis2 for the second plot
             title='Date',  # Set x-axis title
             #rangeslider=dict(visible=True,  # Show rangeslider for zooming and panningthickness=0.05
-            )  )
+            ))
 
 
     fig.show()
@@ -260,7 +261,7 @@ if __name__ == "__main__":
     macros=macrodata(start_date)
 
     # VALUATE STOCK
-    results=damodaran_2(ticker_data,macros,cwd)
+    results=damodaran_2(ticker_data,macros)
 
     # SHOW RESULTS
     #results_plotter(ticker_data,results)
