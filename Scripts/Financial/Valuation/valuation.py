@@ -1,12 +1,12 @@
 import pandas as pd
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
-from bs4 import BeautifulSoup
-import requests
-import re
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from functools import partial
+
+import requests
+import re
+from bs4 import BeautifulSoup
 
 ################## VALUATION
 
@@ -185,6 +185,7 @@ def damodaran_2(ticker_data,macros):
     #data =result_df
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
+    ticker_data
 
     data = data.drop_duplicates(subset='Date', keep='first')
     data=data.head(16) #last 4 years of Q data

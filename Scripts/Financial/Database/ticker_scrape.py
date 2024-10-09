@@ -66,12 +66,12 @@ ALPHAVANTAGE https://www.alphavantage.co  KEY 'B6T9Z1KKTBKA2I1C'
 
 def av_financials(ticker,key,headers):
 
-    '''
 
-    ticker='AMZN'
+
+    ticker='AAPL'
     key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
-    '''
+
 
     sections = ['BALANCE_SHEET', 'INCOME_STATEMENT', 'CASH_FLOW']
 
@@ -153,8 +153,13 @@ def av_financials(ticker,key,headers):
         result_df = result_df[['Date','Revenue','Net Income','Depreciation','Capex','PPE','Cash and ST Investments',
                                'Cash','Assets Current', 'Assets','Liabilities Current','Liabilities','Long Term Debt',
                                'Shares','kd', 'tax','Operating Cash Flow','Liabilities Non Current']]
-    return result_df
+    return result_df['Liabilities Non Current']
 
+    ticker='AAPL'
+    key = 'B6T9Z1KKTBKA2I1C'
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
+    financial_statements = av_financials(ticker, key, headers)  # alphavantage 2009-today quaterly frecuency
+    result_df['Liabilities Non Current']
     # operatingCashFlow','changeInReceivables','changeInInventory'''
 
 def sec():
