@@ -185,7 +185,6 @@ def damodaran_2(ticker_data,macros):
     #data =result_df
     ticker = ticker_data['description']['ticker']
     data = ticker_data['financial_statements']
-    ticker_data
 
     data = data.drop_duplicates(subset='Date', keep='first')
     data=data.head(16) #last 4 years of Q data
@@ -263,7 +262,8 @@ def damodaran_2(ticker_data,macros):
     EA_ratio = Marketcap / (data['Long Term Debt'].iloc[-1] + Marketcap)
 
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    Net_Debt = (data['Liabilities Non Current'] - data['Cash and ST Investments']).iloc[-1]
+    #Net_Debt = (data['Liabilities Non Current'] - data['Cash and ST Investments']).iloc[-1]
+    Net_Debt =73100000000
 
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
 
@@ -273,11 +273,10 @@ def damodaran_2(ticker_data,macros):
     ERP,ERP_std=macros['ERP'],macros['ERP_std']
 
     scenarios = {
-    'optimistic': (best_fit_params - c_d, g + g_d, rf - rf_std,ERP-ERP_std),
+    'optimistic': (best_fit_params - c_d, g, rf - rf_std,ERP-ERP_std),
     'normal': (best_fit_params, g, rf,ERP),
-    'pessimistic': (best_fit_params + c_d, g - g_d, rf + rf_std,ERP+ERP_std)
+    'pessimistic': (best_fit_params + c_d, g , rf + rf_std,ERP+ERP_std)
     }
-
 
     scenarios_df = pd.DataFrame()
     
@@ -382,6 +381,7 @@ def damodaran_2(ticker_data,macros):
         results={'scenario':scenario_name,'Tarjet Price':TarjetPrice_mean}
         scenarios_df = pd.concat([scenarios_df, pd.DataFrame([results])], ignore_index=True)
 
+    print(scenarios_df)
 
     results = {'Date_t0': Date_last, 'TarjetPrice_scenarios': scenarios_df, 'R2': max_r2,
                'Projected Financial Statements': data}

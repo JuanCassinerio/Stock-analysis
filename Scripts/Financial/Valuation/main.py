@@ -1,8 +1,3 @@
-'''
-new_directory = 'C:/Users/Usuario/Desktop/repos/Scripts/Financial/dark box'  # Replace with the path to your desired directory
-os.chdir(new_directory)
-'''
-
 #LIBRERIAS
 from datetime import date
 import pandas as pd
@@ -20,13 +15,16 @@ from Scripts.Financial.Database.macro_scrape import dmd,gdpworld,fred
 
 # FUNCIONES
 def tickerdata(ticker):
-    key = 'B6T9Z1KKTBKA2I1C'
+    '''key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
     financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
+    '''
 
-    #fin = financialdata(ticker) #yahoo last 4 years
+    cwd = Path.cwd()/'Scripts'/'Financial'/'Valuation'
+    financial_statements = pd.read_csv(cwd / 'data.csv')
+    financial_statements['Date'] = pd.to_datetime(financial_statements['Date'])
+
     start_date = financial_statements['Date'].iloc[-1]
-
 
     end_date = date.today()
     ticker_data={'description': companydescription(ticker), 'financial_statements': financial_statements, 'price': price(ticker, start_date - pd.DateOffset(years=6), end_date)}
@@ -52,7 +50,7 @@ def macrodata(start_date):
 def results_plotter(ticker_data,results):
 
     # Filter the data for the last two years
-    ticker_data['price'] = ticker_data['price'][ticker_data['price']['Date'] >= ticker_data['price']['Date'].max() - pd.DateOffset(years=5)]
+    ticker_data['price'] = ticker_data['price'][ticker_data['price']['Date'] >= ticker_data['price']['Date'].max() - pd.DateOffset(years=3)]
 
     fig = make_subplots(rows=2, cols=2, row_heights=[5, 3],column_widths=[5, 1], shared_xaxes=True, vertical_spacing=0.1)
 
@@ -61,10 +59,8 @@ def results_plotter(ticker_data,results):
     fig.add_trace(go.Scatter(
         x=ticker_data['price']['Date'],
         y=ticker_data['price']['Adj Close'],
-        mode='lines',
-        line=dict(color='blue', width=2, dash='dash'),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=1, col=1)
+        mode='lines',line=dict(color='blue', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'), row=1, col=1)
 
     ball_color = ["green", "blue", "red"]
 
@@ -76,54 +72,31 @@ def results_plotter(ticker_data,results):
         fig.add_trace(go.Scatter(
             x=[results['Date_t0']],
             y=[target_price],
-            mode='markers',
-
-            marker=dict(size=20, color=ball_color[i]),
-
-            name=scenario_name
-        ), row=1, col=1)
+            mode='markers',marker=dict(size=20, color=ball_color[i]),name=scenario_name), row=1, col=1)
 
     y_min = min(ticker_data['price']['Adj Close'].min(), results['TarjetPrice_scenarios']['Tarjet Price'].iloc[2].min())
     y_max = ticker_data['price']['Adj Close'].max()
 
-    # Add the line using the manually defined y-axis range
-    fig.update_layout(
-        shapes=[
-            dict(
-                type='line',
-                x0=results['Date_t0'],
-                x1=results['Date_t0'],
-                y0=y_min,  # Use the manually set min value
-                y1=y_max,  # Use the manually set max value
-                line=dict(dash='dash', color='black')
-            )
-        ]
-    )
-
-
+    fig.update_layout(shapes=[dict(type='line',x0=results['Date_t0'],x1=results['Date_t0']
+                                   ,y0=y_min, y1=y_max, line=dict(dash='dash', color='black'))])
 
     # Revenue Data
     fig.add_trace(go.Scatter(
         x=results['Projected Financial Statements']['Date'],
         y=results['Projected Financial Statements']['Revenue Change']*100,
-        mode='lines',
-        line=dict(color='black', width=2, dash='dash'),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=2, col=1)
+        mode='lines',line=dict(color='black', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'), row=2, col=1)
     fig.add_trace(go.Scatter(
         x=results['Projected Financial Statements']['Date'],
         y=results['Projected Financial Statements']['Smoothed Revenue Change']*100,
-        mode='lines',
-        line=dict(color='dark grey', width=2, dash='dash'),  # Line color and width
-        name='Historic Stock Price'  # Label for the trace
-    ), row=2, col=1)
+        mode='lines',line=dict(color='dark grey', width=2, dash='dash'),  # Line color and width
+        name='Historic Stock Price'), row=2, col=1)
 
     company_name = ticker_data['description']['Company']
     industry = ticker_data['description']['industry']
     sector = ticker_data['description']['sector']
     country = ticker_data['description']['country']
     summary = ticker_data['description']['Summary'].split('.')[1]
-    link_yf = ticker_data['description']['link_yf']
 
     def split_text(text, max_length):
         words = text.split(' ')
@@ -146,9 +119,7 @@ def results_plotter(ticker_data,results):
         f"<b>Industry:</b> {industry}<br>",
         f"<b>Sector:</b> {sector}<br>",
         f"<b>Country:</b> {country}<br>",
-        f"<b>Summary:</b> {formatted_summary}<br>",  # Use the formatted summary with line breaks
-        #f"<a href='{link_yf}'>Yahoo Finance</a>"
-    ]
+        f"<b>Summary:</b> {formatted_summary}<br>"]
 
     text_sizes_12 = [15, 15, 15, 15, 15, 15]
     text_colors_12 = ["black", "black", "black", "black","black", "black"]
@@ -166,11 +137,11 @@ def results_plotter(ticker_data,results):
         action = 'Strong Buy'
     elif tp > p_v:
         action = 'Buy'
-    elif tp - tp_m / 2 <= p_v <= tp + tp_m / 2:
+    elif tp - (tp_m / 2) <= p_v <= tp + (tp_m / 2):
         action = 'Hold'
-    elif tp < p_v:
+    elif tp < p_v <= tp + tp_m:
         action = 'Sell'
-    elif tp + tp_m < p_v:
+    else:
         action = 'Strong Sell'
 
 
@@ -185,7 +156,7 @@ def results_plotter(ticker_data,results):
         ]
         text_sizes_22 = [20, 15, 15, 15, 15, 20]
         text_colors_22 = ["black", "black", "black", "black","black", "black"]
-    else: #not trustable results
+    else:
         text_parts_22 = [f"<b>No Value. Low Accuracy Result:</b>"]
         text_sizes_22 = [40]
         text_colors_22 = ["black"]
@@ -199,51 +170,19 @@ def results_plotter(ticker_data,results):
         annotations_22.append(dict(text=text_parts_22[i], x=0.77, y=0.3 - i * 0.05, showarrow=False,
                                    font=dict(size=text_sizes_22[i], color=text_colors_22[i]), xref="paper",
                                    yref="paper", xanchor="left"))
-    annotations_11 = [dict(
-        text="<b>Historic Stock Price [usd]</b>",
-        x=0,  # Centered horizontally
-        y=1.05,  # Slightly above the subplot
-        xref="paper",  # Reference to entire figure width
-        yref="paper",  # Reference to entire figure height
-        showarrow=False,  # No arrow
-        font=dict(size=20, color="black")  # Adjust font size and color
-    )]
-    annotations_21 = [dict(
-        text="<b>Revenue Growth (Quaterly %)</b>",
-        x=0,  # Centered horizontally
-        y=0.38,  # Slightly above the subplot
-        xref="paper",  # Reference to entire figure width
-        yref="paper",  # Reference to entire figure height
-        showarrow=False,  # No arrow
-        font=dict(size=20, color="black",)  # Adjust font size and color
-    )]
 
-    annotations_title = [dict(
-        text=f"Fundamental Stock Value of <b>{ticker}</b> for last Financial Statement : <b>{results['Date_t0'].strftime('%Y-%m-%d')}</b>",
+    annotations_11 = [dict(text="<b>Historic Stock Price [usd]</b>",
+        x=0,y=1.05,xref="paper",yref="paper",showarrow=False,  font=dict(size=20, color="black"))]
 
-        x=0,  # Centered horizontally
-        y=1.12,  # Slightly above the subplot
-        xref="paper",  # Reference to entire figure width
-        yref="paper",  # Reference to entire figure height
-        showarrow=False,  # No arrow
-        font=dict(size=30, family="Helvetica", color="black")  # Adjust font size and color
-    )]
+    annotations_21 = [dict(text="<b>Revenue Growth (Quaterly %)</b>"
+        ,x=0,y=0.38,xref="paper",yref="paper",showarrow=False,font=dict(size=20, color="black",) )]
+
+    annotations_title = [dict(text=f"Fundamental Stock Value of <b>{ticker}</b> for last Financial Statement : <b>{results['Date_t0'].strftime('%Y-%m-%d')}</b>",
+        x=0,y=1.12,xref="paper",yref="paper",showarrow=False,font=dict(size=30, family="Helvetica", color="black")  )]
 
     all_annotations = annotations_12 + annotations_22 + annotations_11 + annotations_21 + annotations_title
-    # Assuming 'Date' is a string column containing dates in YYYY-MM-DD format
 
-    fig.update_layout(
-        annotations=all_annotations,
-        showlegend=False,
-        xaxis1=dict(  # Adjust xaxis1 for the first plot
-            title='Date'
-        ),
-        xaxis2=dict(  # Adjust xaxis2 for the second plot
-            title='Date',  # Set x-axis title
-            #rangeslider=dict(visible=True,  # Show rangeslider for zooming and panningthickness=0.05
-            ))
-
-
+    fig.update_layout(annotations=all_annotations,showlegend=False)
     fig.show()
     return
 
@@ -251,7 +190,6 @@ def results_plotter(ticker_data,results):
 
 if __name__ == "__main__":
 
-    cwd = Path.cwd()
 
     ticker = 'AAPL' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
     #for ticker in tickerlist(calculate return
@@ -261,7 +199,7 @@ if __name__ == "__main__":
     macros=macrodata(start_date)
 
     # VALUATE STOCK
-    results=damodaran_2(ticker_data,macros)
+    #results=damodaran_2(ticker_data,macros)
 
     # SHOW RESULTS
     #results_plotter(ticker_data,results)
@@ -273,7 +211,6 @@ if __name__ == "__main__":
     how to project beta
     
     
-    
+    ticker_data['financial_statements'].to_csv(cwd/'data.csv')
     
     '''
-    ticker_data['financial_statements'].to_csv(cwd/'data.csv')
