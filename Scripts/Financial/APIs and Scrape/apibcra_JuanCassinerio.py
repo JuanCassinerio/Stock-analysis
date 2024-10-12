@@ -1,3 +1,10 @@
+################################################################
+########################### BCRA API ###########################
+################################################################
+'''
+https://www.bcra.gob.ar/Pdfs/PublicacionesEstadisticas/bolmetes.pdf
+'''
+
 import requests
 import pandas as pd
 
