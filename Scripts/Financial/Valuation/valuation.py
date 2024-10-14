@@ -34,7 +34,7 @@ def cost_of_equity(stock,macros,rf,ERP): #5 years monthly
     # https://www.alphaspread.com/security/nasdaq/aapl/discount-rate
     # https://site.financialmodelingprep.com/weighted-average-cost-of-capital/AAPL
     # https://valueinvesting.io/AAPL/valuation/wacc
-
+    #stock=ticker_data['price']
     spy=macros['SPY']
     stock['Month'] = stock['Date'].dt.month
     stock['Year'] = stock['Date'].dt.year
@@ -262,8 +262,8 @@ def damodaran_2(ticker_data,macros):
     EA_ratio = Marketcap / (data['Long Term Debt'].iloc[-1] + Marketcap)
 
     Years_Depreciation = (data['PPE'] / data['Depreciation']).mean()
-    #Net_Debt = (data['Liabilities Non Current'] - data['Cash and ST Investments']).iloc[-1]
-    Net_Debt =73100000000
+    Net_Debt = (data['Liabilities Non Current'] - data['Cash and ST Investments']).iloc[-1]
+
 
     ############################## 5 - CF AND WACC Projection_Scenarios ##############################
 

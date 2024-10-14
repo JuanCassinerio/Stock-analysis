@@ -66,13 +66,6 @@ ALPHAVANTAGE https://www.alphavantage.co  KEY 'B6T9Z1KKTBKA2I1C'
 
 def av_financials(ticker,key,headers):
 
-
-
-    ticker='AAPL'
-    key = 'B6T9Z1KKTBKA2I1C'
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
-
-
     sections = ['BALANCE_SHEET', 'INCOME_STATEMENT', 'CASH_FLOW']
 
     result_df = pd.DataFrame()

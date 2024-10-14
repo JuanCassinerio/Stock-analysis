@@ -15,13 +15,13 @@ from Scripts.Financial.Database.macro_scrape import dmd,gdpworld,fred
 
 # FUNCIONES
 def tickerdata(ticker):
-    '''key = 'B6T9Z1KKTBKA2I1C'
+    key = 'B6T9Z1KKTBKA2I1C'
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"}
     financial_statements = av_financials(ticker, key, headers) #alphavantage 2009-today quaterly frecuency
-    '''
 
-    cwd = Path.cwd()/'Scripts'/'Financial'/'Valuation'
-    financial_statements = pd.read_csv(cwd / 'data.csv')
+
+    ''' cwd = Path.cwd()/'Scripts'/'Financial'/'Valuation'
+    financial_statements = pd.read_csv(cwd / 'data.csv')'''
     financial_statements['Date'] = pd.to_datetime(financial_statements['Date'])
 
     start_date = financial_statements['Date'].iloc[-1]
@@ -186,12 +186,9 @@ def results_plotter(ticker_data,results):
     fig.show()
     return
 
-
-
 if __name__ == "__main__":
 
-
-    ticker = 'AAPL' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
+    ticker = 'META' # do it with 3 stock of 3 sectors appl nvda(tech) and xom(commodities) amzn(retail) + aapl
     #for ticker in tickerlist(calculate return
 
     # GET STOCK AND MACROECONOMICAL VARIABLES
@@ -199,10 +196,10 @@ if __name__ == "__main__":
     macros=macrodata(start_date)
 
     # VALUATE STOCK
-    #results=damodaran_2(ticker_data,macros)
+    results=damodaran_2(ticker_data,macros)
 
     # SHOW RESULTS
-    #results_plotter(ticker_data,results)
+    results_plotter(ticker_data,results)
 
 
     '''
