@@ -132,7 +132,7 @@ def results_plotter(ticker_data,results):
     tp_m=(results['TarjetPrice_scenarios']['Tarjet Price'].iloc[1]-results['TarjetPrice_scenarios']['Tarjet Price'].iloc[1])/2
     p_v = ticker_data['price']['Adj Close'].iloc[(ticker_data['price']['Date'] - results['Date_t0']).abs().idxmin()]
 
-    action=0
+    action = 0
     if tp - tp_m > p_v:
         action = 'Strong Buy'
     elif tp > p_v:
