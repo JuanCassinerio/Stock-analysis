@@ -145,7 +145,7 @@ def results_plotter(ticker_data,results):
         action = 'Strong Sell'
 
 
-    if results['R2']>60:
+    if results['R2']>40:
         text_parts_22 = [
             f"<b>Intrinsic Value Obtained (DCF):</b>",
             f"<b>Current Price:</b> ${round(ticker_data['price']['Adj Close'].iloc[0],1)}<br>",
