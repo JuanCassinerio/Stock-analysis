@@ -1,58 +1,46 @@
 
+def operator(Portfolio,Valuation)
+
+P=[]
+P=I+C # Portfolio = investment + Cash
+I=0 #innitially portfolio has no assets by default(can be changed)
+C=1
+#C_m=100000 dollars C=C*C_m
+
+#buy
+A+=A_bought
+C+=-C_bought
+
+#sell
+A+=-A_bought
+C+=+C_bought
+
+#hold
+
+A+=0
+C+=0
+
+Valuation=dataframe with tickers,price,value(tarjetprice)
+
+Portfolio= Dataframe [/weight/type=cash/investment]
+
+first sell or hold
+
+
+
+
+then buy with money or hold cash
 
 
 
 
 
 
-
-
-
-#strategy aplier
-
-def strategy:
-
-    
-    if ...
     return
 
-    buy hold or sell
-    if
-    else if
-    else
-
-for ticker in tickers
-
-    
-
-#strategy results
-
-def strategy:
-
-    
-    if ...
-    return
-
-    buy hold or sell
-    if
-    else if
-    else
-
-for ticker in tickers
 
 
 
-
-
-
-
-
-
-
-
-#strategy and results for ticker append to dataframe column for ticker(return)
-
-#mean result for tickers(weighted by marketcap to date), mean pot and individual plot(different colors dashed)
 
 
 

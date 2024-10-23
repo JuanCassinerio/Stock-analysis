@@ -8,7 +8,7 @@ import requests
 
 #https://stockanalysis.com/stocks/aapl/forecast/
 
-def financialdata(ticker): #FINANCIAL STATEMENTS yahoo
+def yf_financials(ticker): #FINANCIAL STATEMENTS yahoo
     data_ticker = yf.Ticker(ticker)
     cf = data_ticker.cashflow.T.rename_axis('Date').reset_index()
     it = data_ticker.income_stmt.T.rename_axis('Date').reset_index()

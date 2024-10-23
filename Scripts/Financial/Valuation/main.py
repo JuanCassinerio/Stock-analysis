@@ -211,3 +211,4 @@ if __name__ == "__main__":
     ticker_data['financial_statements'].to_csv(cwd/'data.csv')
     
     '''
+

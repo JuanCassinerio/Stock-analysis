@@ -2,6 +2,9 @@ from pathlib import Path
 import pandas as pd
 from ticker_list import comafi
 
+from ticker_scrape import price,yf_financials,companydescription
+from SEC EDGAR import secfsdstools
+
 if __name__ == '__main__':
     '''
     'openpyxl' for xlsx
@@ -37,6 +40,9 @@ if __name__ == '__main__':
 
 
     from ticker_scrape import price,financials,companydescription
+
+    secfsdstools()
+
     for ticker in tickerlist
         price
         financials
